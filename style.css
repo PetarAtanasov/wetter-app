@@ -1,69 +1,73 @@
 /* ===== PFLICHT: Versteckte Elemente bleiben versteckt =====
-   app.js blendet Bereiche mit "hidden" aus. Ohne !important würden
+   app.js blendet Dinge mit "hidden" aus. Ohne !important würden
    unsere display-Regeln (flex, grid) das überschreiben. */
 [hidden] {
   display: none !important;
 }
 
-/* ===== Farben als Variablen (hier kannst du alle Farben an einem Ort ändern) ===== */
+/* ===== 1) Design-Werte (hier kannst du alles an einem Ort ändern) ===== */
 :root {
   /* "dark": Scrollleisten & Co. hell zeichnen, weil der Hintergrund immer dunkel ist */
   color-scheme: dark;
-  --karte: transparent;             /* Karte ist durchsichtig: der Wetter-Hintergrund scheint durch */
-  --text: #ffffff;                  /* normale Schrift: weiß */
-  --text-leise: rgba(255, 255, 255, 0.8); /* leise Schrift: weiß mit 80 % Deckkraft */
-  --text-schatten: 0 1px 2px rgba(0, 0, 0, 0.25); /* zarter Schatten, damit Schrift sich abhebt */
 
-  /* Glas-Kacheln: halbdurchsichtiges Weiß + Unschärfe des Hintergrunds */
-  --kaestchen: rgba(255, 255, 255, 0.14);       /* normale Kachel */
-  --kaestchen-hover: rgba(255, 255, 255, 0.20); /* Maus darüber: etwas heller */
-  --kaestchen-aktiv: rgba(255, 255, 255, 0.24); /* gewählter Tag: noch heller (+ weißer Rahmen) */
-  --kaestchen-rand: rgba(255, 255, 255, 0.22);  /* feiner heller Rand */
-  --glas-filter: blur(14px) saturate(140%);     /* Milchglas-Effekt */
-  /* Ersatz-Kacheln für Browser OHNE Milchglas: dunkler und deckender */
-  --kaestchen-ersatz: rgba(10, 20, 35, 0.45);
-  --kaestchen-ersatz-hover: rgba(10, 20, 35, 0.35);
-  --kaestchen-ersatz-aktiv: rgba(10, 20, 35, 0.2);
+  /* Schrift */
+  --text: #ffffff;                          /* normale Schrift: weiß */
+  --text-leise: rgba(255, 255, 255, 0.8);   /* leise Schrift: Weiß 80 % */
+  --rot: #d52b1e;                           /* Schweizer Rot: der eine Akzent */
+  --schrift-titel: 1.25rem;                 /* 20px am Handy, 24px am Laptop */
+  --schrift-temp: clamp(3rem, 1.5rem + 7vw, 4rem); /* Handy: 48–64px, je nach Breite */
 
-  /* Dunkler Schleier über dem Wetter-Effekt, unter der Karte.
-     Er dämpft helle Effekte (Sonne, Wolken), damit weiße Schrift lesbar bleibt. */
-  --schleier: rgba(0, 0, 0, 0.12);
+  /* Das Panel: durchsichtig, ohne Rand */
+  --panel: transparent;
+  --linie: rgba(255, 255, 255, 0.14);       /* Trennlinien */
+  --zeile-hover: rgba(255, 255, 255, 0.08); /* Maus über einer Zeile */
+  --zeile-aktiv: rgba(255, 255, 255, 0.14); /* gewählter Tag */
+  --feld: rgba(0, 0, 0, 0.14);              /* Suchfeld: leicht vertieft */
+  --feld-rand: rgba(255, 255, 255, 0.25);   /* Rand des Suchfelds */
+  --balken-spur: rgba(255, 255, 255, 0.15); /* Temperatur-Balken: Hintergrund */
+  --balken: rgba(255, 255, 255, 0.7);       /* Temperatur-Balken: Spanne */
+  --blase: rgba(18, 22, 30, 0.94);          /* schwebende Meldung */
 
-  --akzent: #ffffff;                /* Fokus-Rahmen: weiß, gut sichtbar auf dem dunklen Hintergrund */
-  /* Suchen-Knopf: Verlauf von Himmelblau zu Indigo.
-     Weiße Schrift hat überall mind. 4.5:1 Kontrast (hellste Stelle: 5.93:1) */
-  --knopf-start: #0369a1;
-  --knopf-ende: #4f46e5;
-  --knopf-hover-start: #0077b6;     /* beim Darüberfahren etwas heller (mind. 4.87:1) */
-  --knopf-hover-ende: #5b50e8;
-  --knopf-schatten: rgba(79, 70, 229, 0.35); /* dezenter farbiger Schatten */
-  --knopf-text: #ffffff;            /* Schrift auf Knöpfen */
-  --eingabe-hintergrund: rgba(255, 255, 255, 0.14); /* Eingabefeld: ebenfalls Glas */
-  --eingabe-rahmen: rgba(255, 255, 255, 0.35);      /* heller, feiner Rahmen */
-  --platzhalter: rgba(255, 255, 255, 0.8);          /* "Stadt eingeben…" (Kontrast mind. 4.5:1) */
-  --fehler: #ffffff;                /* Meldungen vor der ersten Suche: weiß auf Glas-Blase */
-  --fehler-blase: #c62828;          /* Hintergrund der roten Fehler-Blase (gleich in hell und dunkel) */
-  --schatten: rgba(0, 0, 0, 0.2);   /* Schatten der Fehler-Blase */
+  /* Die Landkarte */
+  --land: rgba(255, 255, 255, 0.10);        /* Fläche der Schweiz */
+  --land-rand: rgba(255, 255, 255, 0.35);   /* Umriss */
+  --label: rgba(255, 255, 255, 0.92);       /* Stadt-Beschriftung (leicht gedimmt) */
+  --label-schatten: 0 1px 3px rgba(0, 0, 0, 0.5); /* macht die Schrift auf der Karte lesbar */
 
-  /* Hintergrund-Verläufe (Standard und je nach Wetter).
-     Satt und eher dunkel, damit weiße Schrift überall mind. 4.5:1 Kontrast hat
-     (auch auf den Glas-Kacheln). Die Werte stehen im Bericht. */
+  /* Abstände und Ecken */
+  --a1: 4px;
+  --a2: 8px;
+  --a3: 12px;
+  --a4: 16px;
+  --a5: 24px;
+  --panel-innen: 16px;                      /* Innenabstand: 16px Handy, 32px Laptop */
+  --radius-zeile: 10px;                     /* Zeilen und Suchfeld */
+
+  /* Dunkler Schleier über dem Wetter-Effekt, unter dem Inhalt.
+     Das Panel ist durchsichtig, die Schrift steht direkt auf dem Hintergrund.
+     0.33 (und dezentere Effekte) sind nötig, damit leise Schrift (Weiß 80 %) und die
+     Stadt-Beschriftungen auf allen Verläufen + Effekten mind. 4.5:1 Kontrast haben
+     (gemessen per Skript, hell und dunkel). */
+  --schleier: rgba(0, 0, 0, 0.33);
+
+  /* Hintergrund-Verläufe (Standard und je nach Wetter) */
   --verlauf: linear-gradient(160deg, #1d5792, #0f3a80);          /* tiefes Blau */
   --verlauf-sonne: linear-gradient(160deg, #1d5792, #933d0e);    /* Himmelblau zu warmem Orange */
+  --verlauf-nacht: linear-gradient(160deg, #1b2a4a, #0b1226);    /* klare Nacht */
   --verlauf-wolken: linear-gradient(160deg, #46566a, #2c3b4e);   /* Blaugrau */
   --verlauf-nebel: linear-gradient(160deg, #4f555b, #33393e);    /* neutrales Grau */
   --verlauf-regen: linear-gradient(160deg, #3d4b5a, #1f2d3c);    /* dunkler, grauer */
-  --verlauf-schnee: linear-gradient(160deg, #2b587e, #1f3f60);   /* kaltes Eisblau, Flocken gut sichtbar */
+  --verlauf-schnee: linear-gradient(160deg, #2b587e, #1f3f60);   /* kaltes Eisblau */
   --verlauf-gewitter: linear-gradient(160deg, #4a3f63, #1c1828); /* dunkles Violett */
 
   /* Farben und Stärke der Wetter-Effekte */
-  --effekt-staerke: 1;                           /* Regen/Schnee: 1 = voll */
-  --regen-fern: rgba(255, 255, 255, 0.35);       /* hintere Regenebene */
-  --regen-nah: rgba(255, 255, 255, 0.55);        /* vordere Regenebene */
-  --schnee-farbe: rgba(255, 255, 255, 0.95);
-  --wolke: rgba(255, 255, 255, 0.28);            /* zarter, damit Schrift darauf lesbar bleibt */
-  --nebel: rgba(255, 255, 255, 0.25);
-  --sonne-kern: #fffbe0;                         /* Farben der Sonne (innen nach außen) */
+  --effekt-staerke: 1;
+  --regen-fern: rgba(255, 255, 255, 0.28);
+  --regen-nah: rgba(255, 255, 255, 0.42);
+  --schnee-farbe: rgba(255, 255, 255, 0.45);
+  --wolke: rgba(255, 255, 255, 0.18);
+  --nebel: rgba(255, 255, 255, 0.16);
+  --sonne-kern: #fffbe0;
   --sonne-mitte: #ffd54a;
   --sonne-glow: rgba(255, 200, 60, 0.4);
   --strahlen: rgba(255, 244, 180, 0.25);
@@ -73,30 +77,10 @@
 /* ===== Dark Mode: folgt der Systemeinstellung ===== */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Gleicher Glas-Look, nur die Kacheln etwas zarter (Hintergrund ist dunkler) */
-    --karte: transparent;
-    --text: #ffffff;
-    --text-leise: rgba(255, 255, 255, 0.8);
-    --kaestchen: rgba(255, 255, 255, 0.12);
-    --kaestchen-hover: rgba(255, 255, 255, 0.18);
-    --kaestchen-aktiv: rgba(255, 255, 255, 0.22);
-    --kaestchen-rand: rgba(255, 255, 255, 0.18);
-    --akzent: #ffffff;              /* Fokus-Rahmen: weiß */
-    /* Verlauf etwas tiefer, damit er nicht grell wirkt (hellste Stelle: 5.93:1) */
-    --knopf-start: #0369a1;
-    --knopf-ende: #4338ca;
-    --knopf-hover-start: #0573b0;   /* hellste Stelle beim Darüberfahren: 5.14:1 */
-    --knopf-hover-ende: #4f46e5;
-    --knopf-schatten: rgba(99, 102, 241, 0.45);
-    --knopf-text: #ffffff;
-    --eingabe-hintergrund: rgba(255, 255, 255, 0.12);
-    --eingabe-rahmen: rgba(255, 255, 255, 0.3);
-    --fehler: #ffffff;
-    --schatten: rgba(0, 0, 0, 0.5);
-
     /* etwas dunklere Verläufe (Nacht-Stimmung) */
     --verlauf: linear-gradient(160deg, #12305a, #071739);
     --verlauf-sonne: linear-gradient(160deg, #163d6b, #6b3410);
+    --verlauf-nacht: linear-gradient(160deg, #111c33, #060a16);
     --verlauf-wolken: linear-gradient(160deg, #2b3a4c, #18222f);
     --verlauf-nebel: linear-gradient(160deg, #3a4045, #212629);
     --verlauf-regen: linear-gradient(160deg, #2a3848, #111a24);
@@ -105,8 +89,8 @@
 
     /* Effekte im Dunkeln dezenter */
     --effekt-staerke: 0.6;
-    --wolke: rgba(255, 255, 255, 0.2);
-    --nebel: rgba(200, 210, 220, 0.2);
+    --wolke: rgba(255, 255, 255, 0.16);
+    --nebel: rgba(200, 210, 220, 0.15);
     /* Sonne wird zum blassen Mond-Schein */
     --sonne-kern: #f4f6fb;
     --sonne-mitte: #c5d0e6;
@@ -116,13 +100,12 @@
   }
 }
 
-/* ===== Grundeinstellungen ===== */
+/* ===== 2) Grundeinstellungen ===== */
 * {
   box-sizing: border-box;
 }
 
-/* Kein Standard-Abstand: Abstände machen wir nur mit "gap" */
-h1, h2, h3, p {
+h1, h2, p, ul {
   margin: 0;
 }
 
@@ -130,28 +113,44 @@ body {
   margin: 0;
   min-height: 100vh;                /* Ersatz für ältere Browser */
   min-height: 100dvh;               /* echte sichtbare Höhe am Handy */
-  font-family: system-ui, sans-serif;
+  padding: var(--a2);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums; /* alle Ziffern gleich breit */
   color: var(--text);
-  /* Standard-Hintergrund (solange noch kein Wetter geladen ist) */
-  background: var(--verlauf);
-  display: flex;                    /* Karte in die Mitte */
+  background: var(--verlauf);       /* Standard: ruhiger Verlauf */
+  display: flex;                    /* Panel in die Mitte */
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ===== Hintergrund passend zum Wetter (app.js setzt data-wetter) ===== */
+/* Sichtbarer Fokus-Rahmen für Tastatur-Benutzer (überall gleich) */
+:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Icons: Größe kommt von hier, Farbe von der Schrift (currentColor) */
+.ic {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* ===== 3) Hintergrund passend zum Wetter (app.js setzt data-wetter) ===== */
 body[data-wetter="sonne"]    { background: var(--verlauf-sonne); }
+body[data-wetter="nacht"]    { background: var(--verlauf-nacht); }
 body[data-wetter="wolken"]   { background: var(--verlauf-wolken); }
 body[data-wetter="nebel"]    { background: var(--verlauf-nebel); }
 body[data-wetter="regen"]    { background: var(--verlauf-regen); }
 body[data-wetter="schnee"]   { background: var(--verlauf-schnee); }
 body[data-wetter="gewitter"] { background: var(--verlauf-gewitter); }
 
-/* ===== Animierte Wetter-Hintergründe (nur CSS) ===== */
+/* ===== 4) Animierte Wetter-Hintergründe (nur CSS) ===== */
 
-/* Der Effekt-Container: füllt den Bildschirm, liegt hinter der Karte,
-   ist nicht klickbar und schneidet alles ab, was herausragt. */
+/* Der Effekt-Container: füllt den Bildschirm, liegt hinter dem Panel */
 .wetter-effekt {
   position: fixed;
   inset: 0;
@@ -164,8 +163,7 @@ body[data-wetter="gewitter"] { background: var(--verlauf-gewitter); }
   --sg: 260px;    /* Größe der Sonne inklusive Glow */
 }
 
-/* Dunkler Schleier: liegt ÜBER dem Wetter-Effekt (z-index 1) und UNTER der Karte (z-index 2).
-   So bleibt weiße Schrift auch vor hellen Wolken oder der Sonne lesbar. */
+/* Dunkler Schleier: ÜBER dem Wetter-Effekt (z-index 1), UNTER dem Panel (z-index 2) */
 body::before {
   content: "";
   position: fixed;
@@ -175,7 +173,7 @@ body::before {
   background: var(--schleier);
 }
 
-/* Ohne data-wetter (vor der Suche) gibt es keine Ebenen */
+/* Ohne data-wetter (oder bei "nacht") gibt es keine Effekt-Ebenen */
 .wetter-effekt::before,
 .wetter-effekt::after {
   content: none;
@@ -198,7 +196,7 @@ body[data-wetter="gewitter"] .wetter-effekt::after {
   animation: regen-faellt 1.4s linear infinite;
 }
 
-/* Hintere Ebene: dünne, blasse Striche (Kachel = 25% der Ebenenhöhe) */
+/* Hintere Ebene: dünne, blasse Striche */
 body[data-wetter="regen"] .wetter-effekt::before,
 body[data-wetter="gewitter"] .wetter-effekt::before {
   background-image:
@@ -234,7 +232,7 @@ body[data-wetter="gewitter"] .wetter-effekt::after  { animation-duration: 0.65s;
   to   { transform: skewX(-9deg) translateY(50%); }
 }
 
-/* Blitz beim Gewitter: kurzer weißer Aufheller hinter der Karte, ca. alle 6 Sekunden */
+/* Blitz beim Gewitter: kurzer weißer Aufheller hinter dem Panel, ca. alle 6 Sekunden */
 body[data-wetter="gewitter"]::after {
   content: "";
   position: fixed;
@@ -359,8 +357,7 @@ body[data-wetter="sonne"] .wetter-effekt::after {
   to   { transform: rotate(360deg); }
 }
 
-/* Am Tablet/Laptop ist die Sonne größer. Sie sitzt nah an der Ecke oben rechts,
-   damit die helle Scheibe nicht hinter dem Eingabefeld oder den Kacheln liegt. */
+/* Am Tablet/Laptop ist die Sonne größer und sitzt nah an der Ecke oben rechts */
 @media (min-width: 600px) {
   .wetter-effekt {
     --sx: 70px;
@@ -381,7 +378,7 @@ body[data-wetter="wolken"] .wetter-effekt::after {
   animation: wolken-ziehen 90s linear infinite;
 }
 
-/* Obere Wolkenebene (je Kachel 3 Wolken aus mehreren Ovalen) */
+/* Obere Wolkenebene */
 body[data-wetter="wolken"] .wetter-effekt::before {
   top: 4%;
   height: 40%;
@@ -446,583 +443,671 @@ body[data-wetter="nebel"] .wetter-effekt::after {
   to   { transform: translateX(8%); }
 }
 
-/* Bewegung reduzieren: Effekt bleibt als stilles Bild stehen, nichts animiert */
+/* ===== 5) Das Panel: durchsichtig, ohne Rand =====
+   Die Inhalte stehen direkt auf dem Hintergrund. */
+.panel {
+  position: relative;               /* liegt über Wetter-Effekt und Schleier */
+  z-index: 2;
+  width: 100%;
+  max-width: 600px;
+  /* Feste Höhe: Das Panel springt nie, egal was angezeigt wird */
+  height: min(calc(100vh - 2 * var(--a2)), 900px);  /* Ersatz für ältere Browser */
+  height: min(calc(100dvh - 2 * var(--a2)), 900px);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--a3);
+  padding: var(--panel-innen);
+  background: var(--panel);
+}
+
+/* ===== 6) Kopf: Flagge + Datum + Suche ===== */
+.kopf {
+  display: flex;
+  flex-wrap: wrap;                  /* am Handy rutscht die Suche in eine eigene Zeile */
+  align-items: center;
+  gap: var(--a3);
+  flex-shrink: 0;
+}
+
+/* Schweizer Flagge (Inline-SVG) */
+.flagge {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  margin-left: var(--a1);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+}
+
+/* Datum: leise, wird nie gekürzt, schiebt die Suche nach rechts.
+   min-height 44px: gleiche Zeilenhöhe wie das Suchfeld */
+.kopf-datum {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: auto;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ===== 7) Suchfeld mit Lupe ===== */
+.suche {
+  position: relative;               /* die Lupe sitzt im Feld */
+  flex: 1 1 100%;                   /* am Handy: ganze Breite, eigene Zeile */
+  min-width: 0;
+}
+
+.suche input {
+  width: 100%;
+  height: 44px;
+  padding: 0 44px 0 var(--a3);      /* rechts Platz für die Lupe */
+  font-family: inherit;
+  font-size: 16px;                  /* 16px: iPhone zoomt dann nicht hinein */
+  color: var(--text);
+  background: var(--feld);
+  border: 1px solid var(--feld-rand);
+  border-radius: var(--radius-zeile);
+  transition: border-color 150ms ease;
+}
+
+.suche input::placeholder {
+  color: var(--text-leise);
+  opacity: 1;
+}
+
+.suche input:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.such-knopf {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-zeile);
+  cursor: pointer;
+}
+
+/* Während der Suche: Lupe blass */
+.suche.sucht .such-knopf {
+  opacity: 0.5;
+}
+
+/* ===== 8) Inhalt: Karte und Detail =====
+   Handy: untereinander (Karte oben, Detail darunter) */
+.inhalt {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--a3);
+}
+
+/* ===== 9) Die Landkarte ===== */
+.landkarte {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 480px;                 /* Tablet: Karte nicht zu hoch, Detail passt darunter */
+  align-self: center;
+  padding: var(--a3) var(--a1) var(--a2); /* Platz für Beschriftungen am Rand */
+}
+
+/* Die Bühne hat genau das Seitenverhältnis der Karte. Marker liegen darauf. */
+.buehne {
+  position: relative;
+  aspect-ratio: 1000 / 641;
+}
+
+.umriss {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Die Schweiz als Glas-Fläche mit feinem Umriss */
+.umriss-flaeche {
+  fill: var(--land);
+  stroke: var(--land-rand);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke; /* Linie bleibt 1.5px, egal wie groß die Karte ist */
+}
+
+/* Der Schimmer liegt darüber (ohne eigenen Rand) */
+.umriss-schimmer {
+  fill: url(#schimmer);
+  stroke: none;
+}
+
+.marker-ebene {
+  list-style: none;
+  padding: 0;
+}
+
+/* --- Eine Stadt: Punkt + schlichter Text (Name und Temperatur) ---
+   Kein Kasten, kein Rand: sieht aus wie eine normale Kartenbeschriftung.
+   left/top (in %) setzt app.js: das ist der genaue Ort der Stadt.
+   "transform" schiebt den Text auf die gewünschte Seite des Punktes. */
+.marker {
+  --abstand: 5px;                   /* Abstand Punkt – Text (gerade Seiten) */
+  --schraeg: 1px;                   /* Abstand Punkt – Text (schräge Seiten) */
+  /* Standard: Text rechts vom Punkt */
+  --tx: var(--abstand);
+  --ty: -50%;
+  --px: calc(-1 * var(--abstand));  /* wo der Punkt relativ zum Text sitzt */
+  --py: 50%;
+
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 2px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--label);
+  text-decoration: none;
+  text-shadow: var(--label-schatten); /* lesbar direkt auf der Karte */
+  border-radius: 4px;
+  transform: translate(var(--tx), var(--ty));
+}
+
+/* Die 8 möglichen Seiten */
+.marker[data-seite="l"] {
+  --tx: calc(-100% - var(--abstand));
+  --px: calc(100% + var(--abstand));
+}
+
+.marker[data-seite="o"] {
+  --tx: -50%;
+  --ty: calc(-100% - var(--abstand));
+  --px: 50%;
+  --py: calc(100% + var(--abstand));
+}
+
+.marker[data-seite="u"] {
+  --tx: -50%;
+  --ty: var(--abstand);
+  --px: 50%;
+  --py: calc(-1 * var(--abstand));
+}
+
+.marker[data-seite="or"] {
+  --tx: var(--schraeg);
+  --ty: calc(-100% - var(--schraeg));
+  --px: calc(-1 * var(--schraeg));
+  --py: calc(100% + var(--schraeg));
+}
+
+.marker[data-seite="ol"] {
+  --tx: calc(-100% - var(--schraeg));
+  --ty: calc(-100% - var(--schraeg));
+  --px: calc(100% + var(--schraeg));
+  --py: calc(100% + var(--schraeg));
+}
+
+.marker[data-seite="ur"] {
+  --tx: var(--schraeg);
+  --ty: var(--schraeg);
+  --px: calc(-1 * var(--schraeg));
+  --py: calc(-1 * var(--schraeg));
+}
+
+.marker[data-seite="ul"] {
+  --tx: calc(-100% - var(--schraeg));
+  --ty: var(--schraeg);
+  --px: calc(100% + var(--schraeg));
+  --py: calc(-1 * var(--schraeg));
+}
+
+/* Größere Klickfläche (mind. 44px hoch), unsichtbar */
+.marker::after {
+  content: "";
+  position: absolute;
+  inset: -14px -2px;
+}
+
+/* Maus darüber: Text weiß, Name unterstrichen (keine Box) */
+.marker:hover {
+  color: var(--text);
+}
+
+.marker:hover .marker-name {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Gewählte Stadt: Text voll weiß und fett */
+.marker[aria-current="true"] {
+  z-index: 2;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.marker:focus-visible {
+  z-index: 3;
+}
+
+.marker-name {
+  font-weight: 600;
+}
+
+.marker[aria-current="true"] .marker-name {
+  font-weight: 700;
+}
+
+/* Icon nur auf der breiten Karte (die schmale hat dafür keinen Platz) */
+.marker .ic {
+  display: none;
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Temperatur: feste Mindestbreite, damit der Text beim Laden nicht wächst */
+.marker-temp {
+  min-width: 2.2em;
+}
+
+/* Steht der Text links vom Punkt, rückt die Temperatur an den Punkt */
+.marker[data-seite$="l"] .marker-temp {
+  text-align: right;
+}
+
+/* Breite Karte: etwas größere Schrift und Icon */
+.landkarte[data-modus="gross"] .marker {
+  --abstand: 7px;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.landkarte[data-modus="gross"] .marker .ic {
+  display: block;
+}
+
+.landkarte[data-modus="gross"] .marker::after {
+  inset: -12px -2px;
+}
+
+/* Der Punkt am genauen Ort der Stadt */
+.marker-punkt {
+  position: absolute;
+  left: var(--px);
+  top: var(--py);
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;        /* Mitte des Punktes = genauer Ort */
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.25);
+}
+
+/* Gewählte Stadt: größerer roter Punkt mit weißem Ring */
+.marker[aria-current="true"] .marker-punkt {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--rot);
+  box-shadow: 0 0 0 2px #ffffff, 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== 10) Detailansicht ===== */
+.detail {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  /* Notfalls scrollt das Detail IM Panel, nie die Seite.
+     padding + negativer margin: Fokus-Rahmen am Rand werden nicht abgeschnitten. */
+  overflow-y: auto;
+  padding: var(--a1);
+  margin: calc(-1 * var(--a1));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.detail-oben {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--a3);             /* gleiche Einrückung wie die Tageszeilen */
+}
+
+/* Stadtname (h1): Name wird gekürzt, Datum nie */
+.ueberschrift {
+  display: flex;
+  min-width: 0;
+  margin-bottom: var(--a1);
+  font-size: var(--schrift-titel);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  border-radius: 4px;
+}
+
+.ueberschrift-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ueberschrift-datum {
+  flex-shrink: 0;
+  margin-left: 0.35em;
+  font-weight: 400;
+  color: var(--text-leise);
+}
+
+/* Große Temperatur links, Icon rechts */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--a3);
+}
+
+.temperatur {
+  min-width: 0;
+  font-size: var(--schrift-temp);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+/* "/ 8°" bei einem anderen Tag: kleiner und leise */
+.temp-tief {
+  margin-left: 0.25em;
+  font-size: 0.4em;
+  letter-spacing: 0;
+  color: var(--text-leise);
+}
+
+/* Großes Icon: immer kleiner als die Zahl */
+.ic-gross {
+  width: 48px;
+  height: 48px;
+}
+
+.beschreibung {
+  margin-top: var(--a1);
+  color: var(--text-leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Details: feste Höhe für genau 2 Zeilen, damit beim Tageswechsel nichts springt */
+.details-zeile {
+  margin-top: var(--a1);
+  height: 3em;
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.detail-teil {
+  white-space: nowrap;              /* "Wind 12 km/h" bleibt zusammen */
+}
+
+.leise,
+.trenner {
+  color: var(--text-leise);
+}
+
+/* ===== 11) Die 5 Tageszeilen ===== */
+.tage {
+  list-style: none;
+  margin-top: var(--a3);
+  padding: var(--a2) 0 0;
+  border-top: 1px solid var(--linie);
+}
+
+/* Ein Tag: Name · Icon · Tief · Balken · Hoch */
+.tag {
+  width: 100%;
+  height: 44px;
+  display: grid;
+  grid-template-columns: 3.25rem 22px 2.5rem minmax(0, 1fr) 2.5rem;
+  align-items: center;
+  gap: var(--a3);
+  padding: 0 var(--a3);
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-zeile);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.tag:hover {
+  background: var(--zeile-hover);
+}
+
+/* Gewählter Tag: hellere Fläche, NICHT fett (sonst springt die Schrift) */
+.tag[aria-pressed="true"] {
+  background: var(--zeile-aktiv);
+}
+
+.tag:disabled {
+  cursor: default;
+  background: transparent;
+}
+
+.tag .ic {
+  width: 22px;
+  height: 22px;
+}
+
+.tag-tief,
+.tag-hoch {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Temperatur-Balken: Spur + Spanne (left/width setzt app.js) */
+.balken {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--balken-spur);
+}
+
+.balken-fuellung {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 4px;
+  border-radius: 2px;
+  background: var(--balken);
+}
+
+/* Auf hellerer Fläche (Maus, gewählt) wird leise Schrift weiß,
+   damit der Kontrast mind. 4.5:1 bleibt */
+.tag:hover .leise,
+.tag[aria-pressed="true"] .leise {
+  color: var(--text);
+}
+
+/* Handy/Tablet mit genug Höhe: Karte nur so groß, dass das Detail darunter passt */
+@media (max-width: 899.98px) and (min-height: 800px) {
+  .landkarte {
+    max-width: min(480px, calc((100dvh - 600px) * 1.5));
+  }
+}
+
+/* Kleine Handys (wenig Höhe, z.B. 360 x 740): alles etwas enger */
+@media (max-width: 899.98px) and (max-height: 799.98px) {
+  .panel,
+  .inhalt {
+    gap: var(--a2);
+  }
+
+  .tage {
+    margin-top: var(--a2);
+    padding-top: var(--a1);
+  }
+
+  .tag {
+    height: 40px;
+  }
+
+  .details-zeile {
+    font-size: 0.8125rem;           /* 13px */
+    line-height: 1.4;
+    height: 2.8em;
+  }
+}
+
+/* ===== 12) Schwebende Meldung (nimmt keinen Platz ein) ===== */
+.blasen {
+  position: fixed;
+  left: 50%;
+  bottom: var(--a5);
+  z-index: 5;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--a4));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--a2);
+  pointer-events: none;             /* der leere Bereich blockiert keine Klicks */
+}
+
+/* Nicht mit display:none verstecken, sonst liest der Screenreader nichts vor */
+#meldung {
+  padding: 10px var(--a4);
+  font-size: 0.9375rem;
+  text-align: center;
+  color: #ffffff;
+  background: var(--blase);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+#meldung:empty {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.nochmal {
+  min-height: 44px;
+  padding: 0 var(--a4);
+  font: inherit;
+  font-weight: 600;
+  color: #111111;
+  background: #ffffff;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Während des Ladens: blass und nicht klickbar */
+.nochmal:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ===== 13) Laptop (ab 900px): Karte links, Detail rechts ===== */
+@media (min-width: 900px) {
+  :root {
+    --panel-innen: 32px;
+    --schrift-titel: 1.5rem;        /* 24px */
+    --schrift-temp: 5rem;           /* 80px */
+  }
+
+  .panel {
+    max-width: 1100px;
+    height: min(calc(100vh - 2 * var(--a2)), 640px);
+    height: min(calc(100dvh - 2 * var(--a2)), 640px);
+    gap: var(--a4);
+  }
+
+  .kopf {
+    flex-wrap: nowrap;
+  }
+
+  .suche {
+    flex: 0 1 280px;
+  }
+
+  /* Zwei Spalten: Karte (Rest, ca. 60 %) | Detail (380px) */
+  .inhalt {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: minmax(0, 1fr);
+    column-gap: 32px;
+  }
+
+  .landkarte {
+    max-width: none;
+    align-self: center;
+    padding: var(--a3);
+  }
+
+  /* Detail rechts mit feiner Trennlinie */
+  .detail {
+    margin-left: 0;
+    padding-left: var(--a5);
+    border-left: 1px solid var(--linie);
+  }
+
+  .ueberschrift {
+    margin-bottom: var(--a3);
+  }
+
+  .ic-gross {
+    width: 64px;
+    height: 64px;
+  }
+
+  .beschreibung,
+  .details-zeile {
+    margin-top: var(--a2);
+  }
+
+  .details-zeile {
+    font-size: 0.9375rem;
+  }
+
+  .tage {
+    margin-top: var(--a4);
+    padding-top: var(--a3);
+  }
+}
+
+/* ===== 14) Weniger Bewegung gewünscht: nichts animiert ===== */
 @media (prefers-reduced-motion: reduce) {
   .wetter-effekt::before,
   .wetter-effekt::after,
   body[data-wetter]::after {
     animation: none !important;
   }
-}
 
-/* ===== Die Karte in der Mitte ===== */
-.karte {
-  position: relative;               /* liegt über Wetter-Effekt und Schleier */
-  z-index: 2;
-  background: var(--karte);         /* durchsichtig: kein weißer Kasten, kein Schatten */
-  border-radius: 20px;
-  padding: 16px;
-  width: 100%;
-  max-width: 560px;
-  text-align: left;
-  text-shadow: var(--text-schatten); /* jede Schrift in der Karte bekommt den zarten Schatten */
-  display: flex;                    /* alles untereinander */
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ===== Kopf: Titel + Suche ===== */
-.kopf {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-h1 {
-  font-size: clamp(1.125rem, 0.95rem + 0.6vw, 1.375rem); /* wächst mit dem Bildschirm */
-  line-height: 1.2;
-}
-
-/* ===== Formular ===== */
-form {
-  display: flex;
-  gap: 8px;
-}
-
-/* Eingabefeld: min-width 0 verhindert, dass das Formular am Handy überläuft */
-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;                 /* gut mit dem Finger zu treffen */
-  padding: 0 12px;
-  font-size: 16px;                  /* 16px: iPhone zoomt dann nicht hinein */
-  font-family: inherit;
-  color: var(--text);
-  background: var(--eingabe-hintergrund);
-  -webkit-backdrop-filter: var(--glas-filter); /* Milchglas (Safari) */
-  backdrop-filter: var(--glas-filter);         /* Milchglas */
-  border: 2px solid var(--eingabe-rahmen);
-  border-radius: 10px;
-}
-
-input::placeholder {
-  color: var(--platzhalter);
-  opacity: 1;
-}
-
-input:focus-visible {
-  outline: 3px solid var(--akzent);
-  outline-offset: 1px;
-  border-color: var(--akzent);
-}
-
-/* Alle Knöpfe: gemeinsame Grundwerte */
-button {
-  min-height: 44px;
-  padding: 0 18px;
-  font-size: 16px;
-  font-family: inherit;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-/* Sichtbarer Rahmen, wenn man mit der Tastatur (Tab) auf einen Knopf kommt */
-button:focus-visible {
-  outline: 3px solid var(--akzent);
-  outline-offset: 2px;
-}
-
-/* Der Suchen-Knopf: weicher Verlauf, farbiger Schatten */
-.such-knopf {
-  flex-shrink: 0;                   /* wird nicht zusammengedrückt, das Eingabefeld gibt nach */
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;                         /* Abstand zwischen 🔍 und "Suchen" */
-  padding: 0 16px;
-  white-space: nowrap;              /* "Suchen" bleibt in einer Zeile */
-  font-weight: 600;
-  color: var(--knopf-text);
-  background: linear-gradient(135deg, var(--knopf-start), var(--knopf-ende));
-  box-shadow: 0 4px 12px var(--knopf-schatten);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-/* Maus darüber: etwas heller und leicht angehoben */
-.such-knopf:hover {
-  background: linear-gradient(135deg, var(--knopf-hover-start), var(--knopf-hover-ende));
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px var(--knopf-schatten);
-}
-
-/* Beim Klicken: wird "eingedrückt" */
-.such-knopf:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 4px var(--knopf-schatten);
-}
-
-/* Bewegung reduzieren: Knopf bewegt sich nicht */
-@media (prefers-reduced-motion: reduce) {
-  .such-knopf,
-  .vorhersage-tag {
+  .tag,
+  .suche input {
     transition: none;
   }
-  .such-knopf:hover,
-  .such-knopf:active {
-    transform: none;
-  }
 }
 
-/* ===== Meldungen ===== */
-/* Nicht mit display:none verstecken, sonst liest der Screenreader nichts vor */
-#meldung {
-  color: var(--fehler);
-  min-height: 0;
-}
-
-/* Vor der ersten Suche ("Lade Wetter…", "Stadt nicht gefunden"):
-   kleine Glas-Blase mit weißer Schrift, gut lesbar auf jedem Hintergrund */
-#meldung:not(:empty) {
-  width: fit-content;
-  max-width: 100%;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--kaestchen);
-  -webkit-backdrop-filter: var(--glas-filter);
-  backdrop-filter: var(--glas-filter);
-  box-shadow: inset 0 0 0 1px var(--kaestchen-rand); /* feiner Rand, ohne Platz zu brauchen */
-  font-weight: 600;
-}
-
-/* Leere Meldung: den Abstand (gap) davor wieder "zurücknehmen" */
-#meldung:empty {
-  margin-top: -16px;
-}
-
-/* Wird schon Wetter angezeigt, schwebt eine Meldung als kleine "Blase"
-   unten über der Karte, statt Platz einzunehmen. So springt die Karte nicht. */
-.karte:has(#wetter:not([hidden])) #meldung {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  z-index: 3;
-  margin: 0;
-  max-width: calc(100% - 32px);
-  width: max-content;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: var(--fehler-blase);  /* rote Blase statt Glas */
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  color: white;
-  box-shadow: 0 6px 18px var(--schatten);
-}
-
-/* Leere Blase: unsichtbar */
-.karte:has(#wetter:not([hidden])) #meldung:empty {
-  padding: 0;
-  box-shadow: none;
-  background: none;
-}
-
-/* ===== Wetter-Bereich: am Handy alles untereinander ===== */
-#wetter {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  transition: opacity 0.2s;
-}
-
-/* ===== Start mit gespeicherter Stadt ===== */
-/* Die Karte wird sanft eingeblendet, sobald das Wetter da ist */
-.karte {
-  transition: opacity 0.3s;
-}
-
-/* Beim Start: Karte unsichtbar (sie behält aber ihren Platz) */
-.startet .karte {
-  opacity: 0;
-}
-
-/* Kleiner drehender Lade-Kreis in der Mitte, nur beim Start */
-.start-lader {
-  display: none;
-}
-
-.startet .start-lader {
-  display: block;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  margin: -20px 0 0 -20px;
-  border: 4px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  z-index: 3;                       /* über Schleier und (unsichtbarer) Karte */
-  animation: lader-dreht 0.8s linear infinite;
-}
-
-@keyframes lader-dreht {
-  to { transform: rotate(360deg); }
-}
-
-/* Weniger Bewegung gewünscht: kein Drehen, kein Einblenden */
-@media (prefers-reduced-motion: reduce) {
-  .startet .start-lader { animation: none; }
-  .karte { transition: none; }
-}
-
-/* Während eine neue Stadt lädt: altes Wetter leicht ausgrauen,
-   statt es zu verstecken (sonst springt die Karte) */
-#wetter.laedt {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.spalte {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;  /* Spalte darf schmaler als ihr Inhalt sein → kein Überlaufen */
-}
-
-/* ===== Hero: Ort, große Temperatur, Icon, Beschreibung ===== */
-.hero {
-  display: grid;
-  grid-template-columns: 1fr auto;  /* links Text, rechts Icon */
-  grid-template-areas:
-    "ort  ort"
-    "temp icon"
-    "text icon";
-  column-gap: 12px;
-  align-items: center;
-}
-
-.hero-ort {
-  grid-area: ort;
-  font-size: clamp(1.0625rem, 0.95rem + 0.6vw, 1.5rem);
-  font-weight: 600;
-  margin-bottom: 6px;
-  display: flex;       /* Ort und Datum nebeneinander, immer nur 1 Zeile */
-  min-width: 0;
-  white-space: nowrap;
-}
-
-/* Ortsname: wird bei zu wenig Platz mit "…" abgekürzt */
-.hero-ort-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-/* Datum: wird nie abgekürzt */
-.hero-datum {
-  flex-shrink: 0;
-  white-space: pre;    /* behält das Leerzeichen vor dem Strich */
-}
-
-.temperatur {
-  grid-area: temp;
-  font-size: clamp(3.5rem, 2.5rem + 3.5vw, 5.5rem);
-  font-weight: 300;                 /* dünne, moderne Zahl */
-  line-height: 1;
-  letter-spacing: -0.03em;
-  white-space: nowrap;              /* "13° / 6°" bleibt in einer Zeile */
-}
-
-.icon {
-  grid-area: icon;
-  font-size: clamp(3.5rem, 2.75rem + 2.5vw, 5rem);
-  line-height: 1;
-}
-
-.hero-text {
-  grid-area: text;
-  font-size: clamp(0.9375rem, 0.9rem + 0.3vw, 1.125rem);
-  color: var(--text-leise);
-  margin-top: 4px;
-}
-
-/* Sehr schmale Handys: Temperatur darf umbrechen und wird etwas kleiner */
-@media (max-width: 359px) {
-  .temperatur {
-    white-space: normal;
-    font-size: 3rem;
-  }
-}
-
-/* ===== Details: Kacheln im 2er-Raster ===== */
-.details {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-/* ===== Glas-Kacheln (Details, Stunden, Tage) ===== */
-/* Halbdurchsichtig hell + Milchglas. Den feinen Rand malen wir mit einem
-   inneren Schatten (inset): er sieht aus wie "1px solid", braucht aber keinen
-   Platz. So bleiben alle Kacheln genau gleich groß wie vorher. */
-.details li,
-.stunde,
-.vorhersage-tag {
-  background: var(--kaestchen);
-  -webkit-backdrop-filter: var(--glas-filter);
-  backdrop-filter: var(--glas-filter);
-  box-shadow: inset 0 0 0 1px var(--kaestchen-rand);
-}
-
-.details li {
-  display: flex;
-  flex-direction: column;           /* Beschriftung oben, Wert darunter */
-  gap: 2px;
-  padding: 8px 12px;
-  border-radius: 12px;
-}
-
-.detail-label {
-  font-size: 0.75rem;
-  color: var(--text-leise);
-}
-
-.detail-wert {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums; /* Ziffern gleich breit */
-}
-
-/* Bei 5 Kacheln (Regen sichtbar) geht "Sonne" über die ganze Breite */
-#regen-zeile:not([hidden]) ~ .detail-sonne {
-  grid-column: 1 / -1;
-}
-
-/* ===== Überschriften "Stündlich" und "5 Tage" ===== */
-.abschnitt-titel {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-leise);
-  margin-bottom: 6px;
-}
-
-/* ===== Stündliche Leiste (waagerecht scrollbar) ===== */
-.stunden {
-  list-style: none;
-  padding: 0 0 4px;
-  margin: 0;
-  display: flex;
-  gap: 6px;
-  /* "scroll" statt "auto": Die Scrollleiste ist IMMER da. Sonst wäre die
-     Leiste bei 12 Stunden höher als bei 8 und die Karte würde springen. */
-  overflow-x: scroll;
-  scrollbar-width: thin;            /* schmale Scrollleiste */
-  scrollbar-color: rgba(255, 255, 255, 0.45) transparent; /* heller Griff, unsichtbare Schiene */
-  scroll-snap-type: x proximity;    /* rastet sanft an den Kästchen ein */
-}
-
-/* Fokus-Rahmen, wenn man per Tab auf die Leiste kommt */
-.stunden:focus-visible {
-  outline: 3px solid var(--akzent);
-  outline-offset: 2px;
-  border-radius: 10px;
-}
-
-.stunde {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 52px;
-  padding: 6px 4px;
-  border-radius: 12px;
-  font-size: 0.8125rem;
-  text-align: center;
-  color: var(--text);               /* Uhrzeit und Grad: weiß */
-  scroll-snap-align: start;
-}
-
-.stunde-icon {
-  font-size: 1.25rem;
-  line-height: 1.2;
-}
-
-/* ===== Vorhersage (5 Tage) ===== */
-.vorhersage {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  /* Raster: immer 5 gleich breite Spalten, eine pro Tag */
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-
-/* Jede Spalte darf schrumpfen, damit nichts überläuft */
-.vorhersage li {
-  min-width: 0;
-}
-
-.vorhersage-tag {
-  /* ist ein Button: Standard-Knopfstil überschreiben */
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 2px;
-  border-radius: 12px;
-  font-size: 0.8125rem;
-  color: var(--text);               /* Schrift weiß */
-  font-family: inherit;
-  transition: background-color 0.15s ease;
-}
-
-.vorhersage-tag:hover {
-  background: var(--kaestchen-hover);
-}
-
-/* Der gewählte Tag: hellere Glasfläche + weißer 2px-Rahmen (innen, damit nichts wackelt) */
-.vorhersage-tag.aktiv {
-  background: var(--kaestchen-aktiv);
-  color: var(--text);
-  font-weight: bold;
-  box-shadow: inset 0 0 0 2px #ffffff;
-}
-
-/* Browser OHNE Milchglas: dunklere, deckendere Kacheln, damit die Schrift lesbar bleibt.
-   Der gewählte Tag bleibt heller als die anderen und behält seinen weißen Rahmen. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .details li,
-  .stunde,
-  .vorhersage-tag,
-  input,
-  #meldung:not(:empty) {
-    background: var(--kaestchen-ersatz);
-  }
-  .vorhersage-tag:hover {
-    background: var(--kaestchen-ersatz-hover);
-  }
-  .vorhersage-tag.aktiv {
-    background: var(--kaestchen-ersatz-aktiv);
-  }
-}
-
-.vorhersage-icon {
-  font-size: 1.375rem;
-  line-height: 1.2;
-}
-
-/* ===== Tablet (ab 600px): etwas mehr Luft ===== */
-@media (min-width: 600px) {
-  body {
-    padding: 24px;
-  }
-
-  .karte {
-    padding: 24px;
-    gap: 20px;
-  }
-
-  /* Leere Meldung: passend zum größeren Abstand */
-  #meldung:empty {
-    margin-top: -20px;
-  }
-}
-
-/* ===== Laptop (ab 900px): zwei Spalten nebeneinander ===== */
-@media (min-width: 900px) {
-  /* Vor der Suche schmal, sobald Wetter da ist breit */
-  .karte:has(#wetter:not([hidden])) {
-    max-width: 1040px;
-  }
-
-  .karte {
-    padding: 28px;
-    gap: 24px;
-  }
-
-  #meldung:empty {
-    margin-top: -24px;
-  }
-
-  /* Titel links, Suche rechts */
-  .kopf {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-  }
-
-  /* Titel bleibt in einer Zeile, das Formular gibt nach */
-  .kopf h1 {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .kopf form {
-    flex: 0 1 480px;
-    min-width: 0;
-  }
-
-  /* Links aktuelles Wetter, rechts Vorschau */
-  #wetter {
-    display: grid;
-    /* minmax(0, …): die rechte Spalte darf NICHT breiter werden, nur weil
-       die Stundenleiste lang ist. Die Leiste scrollt dann stattdessen. */
-    grid-template-columns: minmax(320px, 5fr) minmax(0, 7fr);
-    gap: 32px;
-    align-items: start;
-  }
-
-  .spalte {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .spalte-vorschau {
-    gap: 24px;
-  }
-
-  .details li {
-    padding: 10px 14px;
-  }
-
-  .detail-wert {
-    font-size: 1.125rem;
-  }
-
-  .stunde {
-    min-width: 60px;
-    padding: 8px 4px;
-    font-size: 0.875rem;
-  }
-
-  .stunde-icon {
-    font-size: 1.5rem;
-  }
-
-  .vorhersage-tag {
-    padding: 12px 4px;
-    gap: 4px;
-    font-size: 0.875rem;
-  }
-
-  .vorhersage-icon {
-    font-size: 1.75rem;
-  }
-}
-
-/* Unsichtbar, aber für Screenreader vorhanden (z.B. das Label "Stadt") */
+/* Unsichtbar, aber für Screenreader vorhanden (z.B. das Label der Suche) */
 .nur-vorlesen {
   position: absolute;
   width: 1px;

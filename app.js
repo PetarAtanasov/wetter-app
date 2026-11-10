@@ -1,392 +1,693 @@
 // ===================================================
-// Wetter-App – die Logik
+// Wetter Schweiz – die Logik
 // Wir benutzen die kostenlose Open-Meteo API (kein Schlüssel nötig)
 // ===================================================
 
-// 1) Elemente aus dem HTML holen, damit wir sie ändern können
+// 1) Feste Daten
+// Die 12 Städte auf der Karte. "id" steht später in der Adresse (#zuerich).
+// Die erste Stadt (Zürich) ist beim Start gewählt.
+// "seite" sagt, wo der Text neben dem Punkt steht, damit sich nichts überdeckt:
+//   r = rechts, l = links, o = oben, u = unten,
+//   or / ol / ur / ul = schräg (z.B. "or" = oben rechts)
+//   klein = schmale Karte (Name + Temperatur), gross = breite Karte (mit Icon, größer)
+// Die Seiten sind per Skript geprüft: kein Text überdeckt einen anderen,
+// auch nicht, wenn eine Stadt gewählt ist.
+const STAEDTE = [
+  { id: "zuerich", name: "Zürich", lat: 47.37, lon: 8.54, seite: { klein: "u", gross: "r" } },
+  { id: "bern", name: "Bern", lat: 46.95, lon: 7.45, seite: { klein: "u", gross: "r" } },
+  { id: "basel", name: "Basel", lat: 47.56, lon: 7.59, seite: { klein: "o", gross: "l" } },
+  { id: "genf", name: "Genf", lat: 46.20, lon: 6.14, seite: { klein: "r", gross: "r" } },
+  { id: "lausanne", name: "Lausanne", lat: 46.52, lon: 6.63, seite: { klein: "r", gross: "r" } },
+  { id: "luzern", name: "Luzern", lat: 47.05, lon: 8.31, seite: { klein: "ur", gross: "r" } },
+  { id: "st-gallen", name: "St. Gallen", lat: 47.42, lon: 9.38, seite: { klein: "o", gross: "r" } },
+  { id: "lugano", name: "Lugano", lat: 46.00, lon: 8.95, seite: { klein: "r", gross: "r" } },
+  { id: "chur", name: "Chur", lat: 46.85, lon: 9.53, seite: { klein: "r", gross: "r" } },
+  { id: "sion", name: "Sion", lat: 46.23, lon: 7.36, seite: { klein: "r", gross: "r" } },
+  { id: "neuchatel", name: "Neuchâtel", lat: 46.99, lon: 6.93, seite: { klein: "o", gross: "l" } },
+  { id: "aarau", name: "Aarau", lat: 47.39, lon: 8.04, seite: { klein: "l", gross: "u" } },
+];
+
+// Projektion: Breite/Länge (lat/lon) -> x/y auf der Karte (viewBox 0 0 1000 641)
+const KARTE = { lon0: 5.956259562595619, lat0: 47.80080240881932, k: 0.6845471059286887, s: 323.8461560973705 };
+const KARTE_BREITE = 1000;
+const KARTE_HOEHE = 641;
+// Ab dieser Breite der Karte (in Pixeln) gelten die "gross"-Seiten
+const NAMEN_AB = 540;
+// Adresse (#ort) für einen gesuchten Ort. Er steht NICHT auf der Karte,
+// sondern nur in der Detailansicht.
+const SUCH_ID = "ort";
+
+const TAGE_KURZ = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const TAGE_LANG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const MONATE_KURZ = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."];
+
+// Fehlermeldungen (immer auf Deutsch)
+const TEXT_NICHT_GEFUNDEN = "Ort nicht gefunden.";
+const TEXT_LEER = "Bitte gib einen Ort ein.";
+const TEXT_KEIN_INTERNET = "Keine Verbindung zum Wetter-Server. Bitte prüfe dein Internet.";
+const TEXT_SERVER = "Der Server antwortet nicht. Bitte später nochmal versuchen.";
+const SEITEN_TITEL = "Wetter Schweiz";
+
+// 2) Elemente aus dem HTML holen
 const formular = document.getElementById("such-formular");
 const eingabe = document.getElementById("stadt-eingabe");
+const ueberschrift = document.getElementById("stadt-name");
 const meldung = document.getElementById("meldung");
-const wetterBereich = document.getElementById("wetter");
+const nochmalKnopf = document.getElementById("nochmal-knopf");
+const heuteDatum = document.getElementById("heute-datum");
+const landkarte = document.querySelector(".landkarte");
+const buehne = document.querySelector(".buehne");
+const markerEbene = document.getElementById("marker-ebene");
+const ueberschriftName = document.getElementById("stadt-titel");
+const ueberschriftDatum = document.getElementById("stadt-datum");
+const temperatur = document.getElementById("temperatur");
+const temperaturTief = document.getElementById("temperatur-tief");
+const wetterIcon = document.querySelector("#wetter-icon use");
+const beschreibung = document.getElementById("beschreibung");
+const detailsZeile = document.getElementById("details-zeile");
+const tageListe = document.getElementById("vorhersage");
 
-// Hier merken wir uns die geladenen Daten, damit ein Klick auf einen Tag
-// nicht neu laden muss. (stadt, aktuell, stuendlich, taeglich)
-let geladeneDaten = null;
-// Zähler für Anfragen: So erkennen wir, ob eine Antwort veraltet ist
+// 3) Zustand: was gerade ausgewählt ist
+let gewaehlteId = STAEDTE[0].id; // welche Stadt gerade gezeigt wird
+let gewaehlterTag = 0;           // 0 = heute, 1–4 = spätere Tage
+let gesuchterOrt = null;         // zuletzt gesuchter Ort (nicht auf der Karte)
+let meldungsTimer = null;
+// Zähler für Suchen: So erkennen wir, ob eine Antwort veraltet ist
 // (eine ältere Antwort darf nie eine neuere überschreiben)
 let anfrageNummer = 0;
 
-// 2) Wettercodes (Zahlen) in Emoji + Text + Hintergrund-Art übersetzen
-//    Open-Meteo schickt z.B. 0 = klar, 61 = Regen
-//    Der dritte Wert ist für den Hintergrund (data-wetter am body)
-function wetterBeschreibung(code) {
-  if (code === 0) return ["☀️", "Klarer Himmel", "sonne"];
-  if (code <= 2) return ["🌤️", "Leicht bewölkt", "sonne"];
-  if (code === 3) return ["☁️", "Bewölkt", "wolken"];
-  if (code <= 48) return ["🌫️", "Nebel", "nebel"];
-  if (code <= 57) return ["🌦️", "Nieselregen", "regen"];
-  if (code <= 67) return ["🌧️", "Regen", "regen"];
-  if (code <= 77) return ["❄️", "Schnee", "schnee"];
-  if (code <= 82) return ["🌧️", "Regenschauer", "regen"];
-  if (code <= 86) return ["🌨️", "Schneeschauer", "schnee"];
-  return ["⛈️", "Gewitter", "gewitter"];
-}
-
-// 3) Stadtname -> Koordinaten (Breitengrad/Längengrad)
-//    "async" heißt: diese Funktion wartet auf das Internet
-async function findeStadt(name) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=de`;
-  const antwort = await fetch(url, { signal: AbortSignal.timeout(10000) }); // Anfrage ans Internet schicken (max. 10 Sekunden)
-  if (!antwort.ok) {
-    throw new Error("Die Stadtsuche ist gerade nicht erreichbar. Bitte später nochmal versuchen.");
+// 4) Wettercode (Zahl von Open-Meteo) -> Icon, Text und Hintergrund-Art
+//    istTag = false: nachts zeigen wir den Mond statt der Sonne
+function wetterBeschreibung(code, istTag = true) {
+  if (code == null) return { icon: null, text: "Keine Angabe", art: null };
+  if (code === 0) {
+    return istTag
+      ? { icon: "i-sonne", text: "Klarer Himmel", art: "sonne" }
+      : { icon: "i-mond", text: "Klar", art: "nacht" };
   }
-  const daten = await antwort.json();     // Antwort in ein JS-Objekt umwandeln
-
-  if (!daten.results || daten.results.length === 0) {
-    throw new Error("Stadt nicht gefunden 😕");
+  if (code <= 2) {
+    return istTag
+      ? { icon: "i-sonne-wolke", text: "Leicht bewölkt", art: "sonne" }
+      : { icon: "i-mond-wolke", text: "Leicht bewölkt", art: "nacht" };
   }
-  return daten.results[0]; // die erste (beste) Übereinstimmung
-}
-
-// 4) Koordinaten -> aktuelles Wetter + stündlich + Vorhersage für 5 Tage (eine Anfrage)
-async function holeWetter(breite, laenge) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${breite}&longitude=${laenge}`
-    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code`
-    + `&hourly=temperature_2m,weather_code`
-    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset`
-    + `&timezone=auto&forecast_days=5`;
-  const antwort = await fetch(url, { signal: AbortSignal.timeout(10000) });
-  if (!antwort.ok) {
-    throw new Error("Die Wetterdaten konnten nicht geladen werden. Bitte später nochmal versuchen.");
-  }
-  const daten = await antwort.json();
-  // Alles zurückgeben: aktuelles Wetter, Stundenwerte und Tagesdaten
-  return { aktuell: daten.current, stuendlich: daten.hourly, taeglich: daten.daily };
+  if (code === 3) return { icon: "i-wolken", text: "Bewölkt", art: "wolken" };
+  if (code <= 48) return { icon: "i-nebel", text: "Nebel", art: "nebel" };
+  if (code <= 57) return { icon: "i-regen", text: "Nieselregen", art: "regen" };
+  if (code <= 67) return { icon: "i-regen", text: "Regen", art: "regen" };
+  if (code <= 77) return { icon: "i-schnee", text: "Schnee", art: "schnee" };
+  if (code <= 82) return { icon: "i-regen", text: "Regenschauer", art: "regen" };
+  if (code <= 86) return { icon: "i-schnee", text: "Schneeschauer", art: "schnee" };
+  return { icon: "i-gewitter", text: "Gewitter", art: "gewitter" };
 }
 
 // 5) Kleine Helfer
-// Kurzer Wochentag, z.B. "Mi" (der Punkt am Ende wird entfernt)
-function kurzerWochentag(datum) {
-  // "T12:00" anhängen, damit die Zeitzone das Datum nicht verschiebt
-  return new Date(datum + "T12:00").toLocaleDateString("de-DE", { weekday: "short" }).replace(".", "");
+// Temperatur als "12°". Fehlt der Wert, kommt "–°"
+function grad(wert) {
+  return wert == null ? "–°" : `${Math.round(wert)}°`;
 }
 
-// Datum "2025-11-12" -> "12.11."
+// Zahl zum Vorlesen: "12". Fehlt der Wert, kommt "–"
+function zahl(wert) {
+  return wert == null ? "–" : `${Math.round(wert)}`;
+}
+
+// Zahl mit Einheit, z.B. "12 km/h". Fehlt der Wert, kommt "–"
+function mitEinheit(wert, einheit) {
+  return wert == null ? "–" : `${Math.round(wert)} ${einheit}`;
+}
+
+// "2026-11-12" -> Datum-Objekt (mittags, damit die Zeitzone nichts verschiebt)
+function datumAus(text) {
+  return new Date(text + "T12:00");
+}
+
+// Datum -> "Di 10. Nov."
 function kurzesDatum(datum) {
-  return `${datum.slice(8, 10)}.${datum.slice(5, 7)}.`;
+  return `${TAGE_KURZ[datum.getDay()]} ${datum.getDate()}. ${MONATE_KURZ[datum.getMonth()]}`;
 }
 
-// "YYYY-MM-DDTHH:MM" -> "HH:MM". Bei null (kein Wert) kommt "–" zurück
-function uhrzeitVon(wert) {
+// "2026-11-12T07:24" -> "07:24". Fehlt der Wert, kommt "–"
+function uhrzeit(wert) {
   return wert ? wert.slice(11, 16) : "–";
 }
 
-// Ein Element mit seiner ID ein- oder ausblenden
-function setzeSichtbar(id, sichtbar) {
-  document.getElementById(id).hidden = !sichtbar;
+// Einen Ort über seine id finden: eine der 12 Städte oder der gesuchte Ort
+function findeOrt(id) {
+  if (id === SUCH_ID) return gesuchterOrt;
+  return STAEDTE.find((ort) => ort.id === id);
 }
 
-// Eine Fehlermeldung in #meldung anzeigen
-function zeigeFehler(fehler) {
-  zeigeMeldungsText(fehler);
-  // Wird schon Wetter angezeigt, schwebt die Meldung als Blase über der Karte.
-  // Die blenden wir nach 5 Sekunden wieder aus, damit sie nichts verdeckt.
-  if (!wetterBereich.hidden) {
-    const text = meldung.textContent;
-    setTimeout(() => {
-      if (meldung.textContent === text) meldung.textContent = "";
-    }, 5000);
+// Ein Icon in ein <use>-Element setzen (oder leeren)
+function setzeIcon(useElement, name) {
+  if (name) {
+    useElement.setAttribute("href", "#" + name);
+  } else {
+    useElement.removeAttribute("href");
   }
 }
 
-function zeigeMeldungsText(fehler) {
-  // Zu lange gewartet (Timeout nach 10 Sekunden)
+// Ein neues Icon bauen: <svg class="ic" aria-hidden="true"><use href="#..."/></svg>
+// SVG-Elemente brauchen createElementNS mit dem SVG-Namensraum
+function neuesIcon(name) {
+  const svgNs = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNs, "svg");
+  svg.setAttribute("class", "ic");
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS(svgNs, "use");
+  setzeIcon(use, name);
+  svg.append(use);
+  return svg;
+}
+
+// Ein <span> mit Klasse und Text bauen
+function neuesSpan(klasse, text) {
+  const span = document.createElement("span");
+  if (klasse) span.className = klasse;
+  span.textContent = text;
+  return span;
+}
+
+// Breite/Länge -> Punkt auf der Karte (x/y im viewBox 0 0 1000 641)
+function aufKarte(lat, lon) {
+  return {
+    x: (lon - KARTE.lon0) * KARTE.k * KARTE.s,
+    y: (KARTE.lat0 - lat) * KARTE.s,
+  };
+}
+
+// 6) Meldungen: schweben über dem Panel und verschwinden nach 5 Sekunden
+function zeigeMeldung(text) {
+  meldung.textContent = text;
+  clearTimeout(meldungsTimer);
+  meldungsTimer = setTimeout(() => {
+    meldung.textContent = "";
+  }, 5000);
+}
+
+function zeigeFehler(fehler) {
   if (fehler.name === "TimeoutError") {
-    meldung.textContent = "Der Server antwortet nicht ⏱️ Bitte später nochmal versuchen.";
+    // Zu lange gewartet (Timeout nach 10 Sekunden)
+    zeigeMeldung(TEXT_SERVER);
+  } else if (fehler instanceof TypeError) {
+    // fetch wirft einen TypeError, wenn gar keine Verbindung möglich ist
+    zeigeMeldung(TEXT_KEIN_INTERNET);
+  } else if (fehler.name === "Error" && fehler.message) {
+    // unsere eigenen Meldungen (z.B. "Ort nicht gefunden.")
+    zeigeMeldung(fehler.message);
+  } else {
+    // z.B. kaputte Antwort vom Server
+    zeigeMeldung(TEXT_SERVER);
+  }
+}
+
+// 7) Daten aus dem Internet holen
+// Eine Adresse abrufen und als JS-Objekt zurückgeben (max. 10 Sekunden warten)
+async function holeJson(url) {
+  const antwort = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!antwort.ok) {
+    throw new Error(TEXT_SERVER);
+  }
+  return antwort.json();
+}
+
+// Wetter für ALLE Städte in EINER Anfrage holen.
+// Die Antwort ist eine Liste, ein Eintrag pro Stadt, in derselben Reihenfolge.
+async function holeWetter(liste) {
+  const breiten = liste.map((ort) => ort.lat).join(",");
+  const laengen = liste.map((ort) => ort.lon).join(",");
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${breiten}&longitude=${laengen}`
+    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset`
+    + `&timezone=auto&forecast_days=5`;
+  const daten = await holeJson(url);
+  // Bei nur einem Ort schickt Open-Meteo ein einzelnes Objekt statt einer Liste
+  return Array.isArray(daten) ? daten : [daten];
+}
+
+// Ortsname -> Koordinaten, nur in der Schweiz (countryCode=CH)
+async function sucheOrtInDerSchweiz(name) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}`
+    + `&countryCode=CH&count=1&language=de`;
+  const daten = await holeJson(url);
+  if (!daten.results || daten.results.length === 0) {
+    throw new Error(TEXT_NICHT_GEFUNDEN);
+  }
+  return daten.results[0]; // die beste Übereinstimmung
+}
+
+// 8) Aufräumen: Früher wurde ein gesuchter Ort als "meinOrt" gespeichert.
+//    Den alten Eintrag im Browser löschen wir, damit nichts übrig bleibt.
+function loescheAltenOrt() {
+  try {
+    localStorage.removeItem("meinOrt");
+  } catch (fehler) {
+    // Speicher blockiert: nicht schlimm
+  }
+}
+
+// 9) Die Karte mit den Markern
+// Für jede Stadt einen Link bauen: <a href="#zuerich">Punkt, Icon, Name, Temperatur</a>
+function baueKarte() {
+  STAEDTE.forEach((ort) => {
+    const punkt = aufKarte(ort.lat, ort.lon);
+    const eintrag = document.createElement("li");
+    const link = document.createElement("a");
+    link.className = "marker";
+    link.href = "#" + ort.id;
+    link.dataset.id = ort.id;
+    // Position in Prozent: so passt der Marker bei jeder Größe
+    link.style.left = `${(punkt.x / KARTE_BREITE) * 100}%`;
+    link.style.top = `${(punkt.y / KARTE_HOEHE) * 100}%`;
+
+    const markerPunkt = neuesSpan("marker-punkt", "");
+    markerPunkt.setAttribute("aria-hidden", "true");
+    link.append(markerPunkt, neuesIcon(null), neuesSpan("marker-name", ort.name), neuesSpan("marker-temp", "–°"));
+
+    eintrag.append(link);
+    markerEbene.append(eintrag);
+  });
+  setzeSeiten();
+  fuelleKarte();
+}
+
+// Temperaturen, Icons und Vorlese-Text in die Marker schreiben
+function fuelleKarte() {
+  markerEbene.querySelectorAll(".marker").forEach((link) => {
+    const ort = findeOrt(link.dataset.id);
+    const temp = link.querySelector(".marker-temp");
+    const icon = link.querySelector(".ic use");
+
+    if (ort.wetter) {
+      const jetzt = ort.wetter.current;
+      const wetter = wetterBeschreibung(jetzt.weather_code, jetzt.is_day === 1);
+      temp.textContent = grad(jetzt.temperature_2m);
+      setzeIcon(icon, wetter.icon);
+      // Vorlesen z.B.: "Zürich, 12 Grad, Leicht bewölkt"
+      const gradText = jetzt.temperature_2m == null ? "–" : `${zahl(jetzt.temperature_2m)} Grad`;
+      link.setAttribute("aria-label", `${ort.name}, ${gradText}, ${wetter.text}`);
+    } else {
+      temp.textContent = "–°";
+      setzeIcon(icon, null);
+      link.setAttribute("aria-label", `${ort.name}, noch keine Wetterdaten`);
+    }
+  });
+  markiereKarte();
+}
+
+// Die gewählte Stadt markieren (aria-current="true").
+// Ist ein gesuchter Ort gewählt, ist kein Marker markiert.
+function markiereKarte() {
+  markerEbene.querySelectorAll(".marker").forEach((link) => {
+    if (link.dataset.id === gewaehlteId) {
+      link.setAttribute("aria-current", "true");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
+// Schmale oder breite Karte? Danach richtet sich, wo die Beschriftungen stehen.
+function setzeSeiten() {
+  const modus = buehne.clientWidth >= NAMEN_AB ? "gross" : "klein";
+  landkarte.dataset.modus = modus;
+  markerEbene.querySelectorAll(".marker").forEach((link) => {
+    link.dataset.seite = findeOrt(link.dataset.id).seite[modus];
+  });
+}
+
+// 10) Die Detailansicht
+// Die 5 Tageszeilen einmal bauen (Buttons). Danach werden sie nur noch gefüllt.
+function baueTage() {
+  for (let i = 0; i < 5; i++) {
+    const eintrag = document.createElement("li");
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.className = "tag";
+    knopf.setAttribute("aria-pressed", "false");
+    knopf.addEventListener("click", () => waehleTag(i));
+
+    const balken = neuesSpan("balken", "");
+    balken.setAttribute("aria-hidden", "true");
+    balken.append(neuesSpan("balken-fuellung", ""));
+
+    knopf.append(
+      neuesSpan("tag-name", i === 0 ? "Heute" : "–"),
+      neuesIcon(null),
+      neuesSpan("tag-tief leise", "–°"),
+      balken,
+      neuesSpan("tag-hoch", "–°")
+    );
+    eintrag.append(knopf);
+    tageListe.append(eintrag);
+  }
+}
+
+// Die 5 Tageszeilen mit Werten füllen (oder Platzhalter zeigen)
+function fuelleTage(tage) {
+  const knoepfe = tageListe.querySelectorAll(".tag");
+
+  // Kältester und wärmster Wert der 5 Tage: daran messen wir die Balken.
+  // Fehlende Werte (null) zählen nicht mit.
+  let min = 0;
+  let max = 1;
+  if (tage) {
+    const tiefs = tage.temperature_2m_min.filter((wert) => wert != null);
+    const hochs = tage.temperature_2m_max.filter((wert) => wert != null);
+    if (tiefs.length && hochs.length) {
+      min = Math.min(...tiefs);
+      max = Math.max(...hochs);
+    }
+  }
+  const spanne = max - min || 1; // nie durch 0 teilen
+
+  knoepfe.forEach((knopf, i) => {
+    const fuellung = knopf.querySelector(".balken-fuellung");
+    const icon = knopf.querySelector(".ic use");
+
+    // Keine Daten: Platzhalter, Knopf nicht klickbar
+    if (!tage || !tage.time[i]) {
+      knopf.querySelector(".tag-name").textContent = i === 0 ? "Heute" : "–";
+      knopf.querySelector(".tag-tief").textContent = "–°";
+      knopf.querySelector(".tag-hoch").textContent = "–°";
+      setzeIcon(icon, null);
+      fuellung.hidden = true;
+      knopf.disabled = true;
+      knopf.setAttribute("aria-pressed", "false");
+      knopf.removeAttribute("aria-label");
+      return;
+    }
+
+    const datum = datumAus(tage.time[i]);
+    const tief = tage.temperature_2m_min[i];
+    const hoch = tage.temperature_2m_max[i];
+    const wetter = wetterBeschreibung(tage.weather_code[i], true);
+
+    knopf.querySelector(".tag-name").textContent = i === 0 ? "Heute" : TAGE_KURZ[datum.getDay()];
+    knopf.querySelector(".tag-tief").textContent = grad(tief);
+    knopf.querySelector(".tag-hoch").textContent = grad(hoch);
+    setzeIcon(icon, wetter.icon);
+
+    // Balken: links = wie weit der Tiefstwert vom kältesten Wert weg ist (in %).
+    // Höchstens "100 % - 4px", damit der Balken nie aus der Spur ragt.
+    if (tief == null || hoch == null) {
+      fuellung.hidden = true;
+    } else {
+      fuellung.hidden = false;
+      fuellung.style.left = `min(${((tief - min) / spanne) * 100}%, calc(100% - 4px))`;
+      fuellung.style.width = `${((hoch - tief) / spanne) * 100}%`;
+    }
+
+    knopf.disabled = false;
+    knopf.setAttribute("aria-pressed", i === gewaehlterTag ? "true" : "false");
+    // Vorlesen z.B.: "Mittwoch, 12. Nov.: Regen, 14 bis 8 Grad"
+    const tagName = i === 0 ? "Heute" : TAGE_LANG[datum.getDay()];
+    knopf.setAttribute(
+      "aria-label",
+      `${tagName}, ${datum.getDate()}. ${MONATE_KURZ[datum.getMonth()]}: ${wetter.text}, ${zahl(hoch)} bis ${zahl(tief)} Grad`
+    );
+  });
+}
+
+// Ein Teil der Detail-Zeile, z.B. "Wind" (leise) + "12 km/h"
+function detailTeil(beschriftung, wert) {
+  const teil = neuesSpan("detail-teil", "");
+  teil.append(neuesSpan("leise", beschriftung + " "), wert);
+  return teil;
+}
+
+// Sonnenaufgang und -untergang: "↑07:24 ↓16:58" (Pfeile nur für die Augen)
+function sonnenTeil(tage, index) {
+  const teil = neuesSpan("detail-teil", "");
+  const auf = neuesSpan("leise", "↑");
+  const ab = neuesSpan("leise", "↓");
+  auf.setAttribute("aria-hidden", "true");
+  ab.setAttribute("aria-hidden", "true");
+  teil.append(
+    auf, neuesSpan("nur-vorlesen", "Sonnenaufgang "), uhrzeit(tage.sunrise[index]), " ",
+    ab, neuesSpan("nur-vorlesen", "Sonnenuntergang "), uhrzeit(tage.sunset[index])
+  );
+  return teil;
+}
+
+// Die Teile mit " · " dazwischen in die Detail-Zeile schreiben
+function zeigeDetails(teile) {
+  detailsZeile.textContent = "";
+  teile.forEach((teil, i) => {
+    if (i > 0) {
+      const trenner = neuesSpan("trenner", " · ");
+      trenner.setAttribute("aria-hidden", "true");
+      detailsZeile.append(trenner);
+    }
+    detailsZeile.append(teil);
+  });
+}
+
+// Die ganze Detailansicht für die gewählte Stadt und den gewählten Tag füllen
+function zeigeDetail() {
+  const ort = findeOrt(gewaehlteId);
+  ueberschriftName.textContent = ort.name;
+  ueberschriftName.title = ort.name; // voller Name beim Drüberfahren, falls gekürzt
+  document.title = `${ort.name} – ${SEITEN_TITEL}`;
+
+  // Noch keine Daten (lädt noch oder Fehler): Platzhalter in gleicher Höhe
+  if (!ort.wetter) {
+    ueberschriftDatum.textContent = "";
+    temperatur.textContent = "–°";
+    temperaturTief.textContent = "";
+    setzeIcon(wetterIcon, null);
+    beschreibung.textContent = "–";
+    detailsZeile.textContent = "–";
+    fuelleTage(null);
     return;
   }
-  // fetch wirft einen "TypeError", wenn gar keine Verbindung möglich ist
-  // (z.B. kein Internet). Die englische Meldung "Failed to fetch" ersetzen wir.
-  if (fehler instanceof TypeError) {
-    meldung.textContent = "Keine Verbindung zum Wetter-Server 📡 Bitte prüfe dein Internet.";
-  } else {
-    meldung.textContent = fehler.message || "Etwas ist schiefgelaufen.";
-  }
-}
 
-// 6) Die große Anzeige füllen (index 0 = aktuelles Wetter, sonst ein späterer Tag)
-function zeigeHauptanzeige(index) {
-  const d = geladeneDaten;
-  const heute = index === 0;
-  const tag = d.taeglich;
+  const tage = ort.wetter.daily;
+  const i = gewaehlterTag;
 
-  // Überschrift aus zwei Teilen: Ort (wird bei Platzmangel mit "…" gekürzt)
-  // und Datum (wird nie gekürzt). So bleibt sie immer EINE Zeile hoch
-  // und die Karte springt beim Anklicken eines Tages nicht.
-  const ueberschrift = document.getElementById("stadt-name");
-  ueberschrift.textContent = ""; // alten Inhalt leeren
-  const ortTeil = document.createElement("span");
-  ortTeil.className = "hero-ort-name";
-  ortTeil.textContent = d.stadt.land ? `${d.stadt.name}, ${d.stadt.land}` : d.stadt.name;
-  ortTeil.title = ortTeil.textContent; // voller Name beim Drüberfahren mit der Maus
-  ueberschrift.append(ortTeil);
-  // Bei einem anderen Tag hängen wir Wochentag und Datum an
-  if (!heute) {
-    const datumTeil = document.createElement("span");
-    datumTeil.className = "hero-datum";
-    datumTeil.textContent = ` – ${kurzerWochentag(tag.time[index])}, ${kurzesDatum(tag.time[index])}`;
-    ueberschrift.append(datumTeil);
-  }
+  if (i === 0) {
+    // Heute: das aktuelle Wetter
+    const jetzt = ort.wetter.current;
+    const wetter = wetterBeschreibung(jetzt.weather_code, jetzt.is_day === 1);
+    const hoch = tage.temperature_2m_max[0];
+    const tief = tage.temperature_2m_min[0];
+    ueberschriftDatum.textContent = "";
+    temperatur.textContent = grad(jetzt.temperature_2m);
+    temperaturTief.textContent = "";
+    setzeIcon(wetterIcon, wetter.icon);
 
-  // Heute: Code vom aktuellen Wetter, sonst vom Tag
-  const code = heute ? d.aktuell.weather_code : tag.weather_code[index];
-  const [emoji, text, art] = wetterBeschreibung(code);
-
-  document.getElementById("wetter-icon").textContent = emoji;
-  document.getElementById("beschreibung").textContent = text;
-  document.body.setAttribute("data-wetter", art); // für den Hintergrund
-
-  if (heute) {
-    document.getElementById("temperatur").textContent = `${Math.round(d.aktuell.temperature_2m)}°C`;
-    document.getElementById("gefuehlt").textContent = `${Math.round(d.aktuell.apparent_temperature)}°C`;
-    document.getElementById("feuchtigkeit").textContent = `${d.aktuell.relative_humidity_2m}%`;
-    document.getElementById("wind-titel").textContent = "Wind";
-    document.getElementById("wind").textContent = `${d.aktuell.wind_speed_10m} km/h`;
-  } else {
-    document.getElementById("temperatur").textContent = `${Math.round(tag.temperature_2m_max[index])}° / ${Math.round(tag.temperature_2m_min[index])}°`;
-    document.getElementById("regen").textContent = `${tag.precipitation_probability_max[index]}%`;
-    document.getElementById("wind-titel").textContent = "Max. Wind";
-    document.getElementById("wind").textContent = `${tag.wind_speed_10m_max[index]} km/h`;
-  }
-
-  // Sonnenaufgang und -untergang dieses Tages ("YYYY-MM-DDTHH:MM" -> "HH:MM")
-  // (in Polarregionen kann der Wert null sein, dann zeigen wir "–")
-  document.getElementById("sonnenaufgang").textContent = uhrzeitVon(tag.sunrise[index]);
-  document.getElementById("sonnenuntergang").textContent = uhrzeitVon(tag.sunset[index]);
-
-  // Nicht passende Zeilen ausblenden
-  setzeSichtbar("gefuehlt-zeile", heute);
-  setzeSichtbar("feuchtigkeit-zeile", heute);
-  setzeSichtbar("regen-zeile", !heute);
-}
-
-// 7) Die stündliche Leiste füllen
-//    Heute: die nächsten 12 Stunden. Anderer Tag: alle 3 Stunden (00, 03, ... 21)
-function zeigeStunden(index) {
-  const liste = document.getElementById("stunden");
-  liste.textContent = ""; // alte Einträge löschen
-
-  const st = geladeneDaten.stuendlich;
-  const welche = []; // hier sammeln wir die Positionen (Indizes), die wir zeigen
-
-  if (index === 0) {
-    // "2025-11-12T14:15" -> "2025-11-12T14:00" (so sehen die Stunden-Zeiten aus)
-    const jetzt = geladeneDaten.aktuell.time.slice(0, 13) + ":00";
-    const start = st.time.indexOf(jetzt);
-    // Wird die Stunde nicht gefunden, bleibt die Leiste leer
-    if (start !== -1) {
-      for (let i = start; i < start + 12 && i < st.time.length; i++) {
-        welche.push(i);
-      }
-    }
-  } else {
-    const datum = geladeneDaten.taeglich.time[index];
-    st.time.forEach((zeit, i) => {
-      const stunde = Number(zeit.slice(11, 13));
-      if (zeit.startsWith(datum) && stunde % 3 === 0) {
-        welche.push(i);
-      }
-    });
-  }
-
-  // Für jede Stunde ein kleines Kästchen bauen
-  welche.forEach((i) => {
-    const [emoji] = wetterBeschreibung(st.weather_code[i]);
-
-    const eintrag = document.createElement("li");
-    eintrag.className = "stunde";
-
-    const uhrzeit = document.createElement("span");
-    uhrzeit.textContent = st.time[i].slice(11, 16);
-
-    const icon = document.createElement("span");
-    icon.className = "stunde-icon";
-    icon.textContent = emoji;
-
-    const temp = document.createElement("span");
-    temp.textContent = `${Math.round(st.temperature_2m[i])}°`;
-
-    eintrag.append(uhrzeit, icon, temp);
-    liste.appendChild(eintrag);
-  });
-
-  liste.scrollLeft = 0; // ganz nach links zurückscrollen
-}
-
-// 8) Die Vorhersage für die nächsten Tage anzeigen (jeder Tag ist ein Button)
-function zeigeVorhersage(taeglich) {
-  const liste = document.getElementById("vorhersage");
-  liste.textContent = ""; // alte Einträge löschen
-
-  // Für jeden Tag ein kleines Kästchen bauen
-  taeglich.time.forEach((datum, i) => {
-    const [emoji] = wetterBeschreibung(taeglich.weather_code[i]);
-
-    const eintrag = document.createElement("li");
-
-    // Der Button macht den Tag per Tastatur und Screenreader bedienbar
-    const tag = document.createElement("button");
-    tag.type = "button";
-    tag.className = "vorhersage-tag";
-    // Beschriftung für Screenreader, z.B. "Mittwoch, 12.11.: Regen, 13 bis 6 Grad"
-    const langerTag = i === 0 ? "Heute" : new Date(datum + "T12:00").toLocaleDateString("de-DE", { weekday: "long" });
-    const [, beschreibungstext] = wetterBeschreibung(taeglich.weather_code[i]);
-    tag.setAttribute(
-      "aria-label",
-      `${langerTag}, ${kurzesDatum(datum)}: ${beschreibungstext}, ${Math.round(taeglich.temperature_2m_max[i])} bis ${Math.round(taeglich.temperature_2m_min[i])} Grad`
+    // "Leicht bewölkt · H 14° T 6°" (für Screenreader ausgeschrieben)
+    beschreibung.textContent = "";
+    const kurz = neuesSpan("", ` · H ${grad(hoch)} T ${grad(tief)}`);
+    kurz.setAttribute("aria-hidden", "true");
+    beschreibung.append(
+      wetter.text,
+      kurz,
+      neuesSpan("nur-vorlesen", `, Höchstwert ${grad(hoch)}, Tiefstwert ${grad(tief)}`)
     );
-    tag.addEventListener("click", () => waehleTag(i));
 
-    const name = document.createElement("span");
-    name.textContent = i === 0 ? "Heute" : kurzerWochentag(datum);
+    zeigeDetails([
+      detailTeil("Gefühlt", grad(jetzt.apparent_temperature)),
+      detailTeil("Wind", mitEinheit(jetzt.wind_speed_10m, "km/h")),
+      detailTeil("Feuchte", mitEinheit(jetzt.relative_humidity_2m, "%")),
+      sonnenTeil(tage, 0),
+    ]);
+  } else {
+    // Ein späterer Tag: Höchst- / Tiefstwert und Regen-Wahrscheinlichkeit
+    const wetter = wetterBeschreibung(tage.weather_code[i], true);
+    ueberschriftDatum.textContent = `· ${kurzesDatum(datumAus(tage.time[i]))}`;
+    temperatur.textContent = grad(tage.temperature_2m_max[i]);
+    temperaturTief.textContent = `/ ${grad(tage.temperature_2m_min[i])}`;
+    setzeIcon(wetterIcon, wetter.icon);
+    beschreibung.textContent = wetter.text;
 
-    const icon = document.createElement("span");
-    icon.className = "vorhersage-icon";
-    icon.textContent = emoji;
+    zeigeDetails([
+      detailTeil("Regen", mitEinheit(tage.precipitation_probability_max[i], "%")),
+      sonnenTeil(tage, i),
+    ]);
+  }
 
-    const temp = document.createElement("span");
-    temp.textContent = `${Math.round(taeglich.temperature_2m_max[i])}° / ${Math.round(taeglich.temperature_2m_min[i])}°`;
-
-    tag.append(name, icon, temp);
-    eintrag.appendChild(tag);
-    liste.appendChild(eintrag);
-  });
+  fuelleTage(tage);
 }
 
-// 9) Einen Tag auswählen: große Anzeige, Stunden und Markierung aktualisieren
+// 11) Hintergrund passend zum angezeigten Wetter (body[data-wetter])
+function setzeHintergrund() {
+  const ort = findeOrt(gewaehlteId);
+  let wetter = null;
+  if (ort.wetter) {
+    if (gewaehlterTag === 0) {
+      const jetzt = ort.wetter.current;
+      wetter = wetterBeschreibung(jetzt.weather_code, jetzt.is_day === 1);
+    } else {
+      wetter = wetterBeschreibung(ort.wetter.daily.weather_code[gewaehlterTag], true);
+    }
+  }
+  if (wetter && wetter.art) {
+    document.body.setAttribute("data-wetter", wetter.art);
+  } else {
+    document.body.removeAttribute("data-wetter"); // ruhiger Standard-Verlauf
+  }
+}
+
+// Karte, Detail und Hintergrund auf den aktuellen Stand bringen
+function aktualisiereAlles() {
+  markiereKarte();
+  zeigeDetail();
+  setzeHintergrund();
+}
+
+// 12) Stadt wählen – gesteuert über die Adresse (#zuerich, #ort).
+//     So funktionieren Links und die Zurück-Taste.
+// Die id aus der Adresse lesen. Kaputte Adressen (z.B. "#%E0") ergeben "".
+function leseAdresse() {
+  try {
+    return decodeURIComponent(location.hash.slice(1));
+  } catch (fehler) {
+    return ""; // wie eine unbekannte Adresse behandeln
+  }
+}
+
+function zeigeGewaehlteStadt() {
+  // Unbekannt oder leer (oder #ort ohne Suchergebnis, z.B. nach Neuladen): Zürich
+  const ort = findeOrt(leseAdresse()) || STAEDTE[0];
+  gewaehlteId = ort.id;
+  gewaehlterTag = 0; // eine neue Stadt beginnt immer mit "Heute"
+  aktualisiereAlles();
+  // Der Fokus bleibt, wo er ist (z.B. auf dem angeklickten Marker)
+}
+
+// Einen Ort öffnen. Steht er schon in der Adresse, gibt es kein
+// "hashchange"-Ereignis, dann zeigen wir ihn direkt an.
+function oeffne(id) {
+  if (location.hash === "#" + id) {
+    zeigeGewaehlteStadt();
+  } else {
+    location.hash = id;
+  }
+}
+
+// 13) Einen Tag auswählen (0 = heute)
 function waehleTag(index) {
-  zeigeHauptanzeige(index);
-  zeigeStunden(index);
-
-  // Nur der gewählte Button bekommt "aktiv" und aria-pressed="true"
-  const knoepfe = document.querySelectorAll("#vorhersage button");
-  knoepfe.forEach((knopf, i) => {
-    knopf.classList.toggle("aktiv", i === index);
-    knopf.setAttribute("aria-pressed", i === index ? "true" : "false");
-  });
+  gewaehlterTag = index;
+  zeigeDetail();
+  setzeHintergrund();
 }
 
-// 10) Wetter für eine gefundene Stadt laden und anzeigen
-//     "stadt" kommt von findeStadt, "nummer" ist die Nummer der Anfrage.
-//     Gibt true zurück, wenn alles geklappt hat
-async function ladeUndZeige(stadt, nummer) {
-  try {
-    const wetter = await holeWetter(stadt.latitude, stadt.longitude);
-    // Antwort veraltet? Dann hat der Benutzer inzwischen neu gesucht
-    if (nummer !== anfrageNummer) return false;
-    // Daten merken, damit Klicks auf einen Tag sie wiederverwenden können
-    geladeneDaten = {
-      stadt: { name: stadt.name, land: stadt.country },
-      aktuell: wetter.aktuell,
-      stuendlich: wetter.stuendlich,
-      taeglich: wetter.taeglich,
-    };
-    zeigeVorhersage(wetter.taeglich);
-    waehleTag(0); // bei neuer Suche ist wieder "heute" ausgewählt
-    wetterBereich.hidden = false; // Bereich sichtbar machen
-    meldung.textContent = "";
-    return true;
-  } catch (fehler) {
-    if (nummer !== anfrageNummer) return false; // veralteter Fehler: ignorieren
-    zeigeFehler(fehler);
-    return false;
+// 14) Suche: nur Orte in der Schweiz.
+// Ist der gefundene Ort eine der 12 Städte? (fast gleiche Koordinaten, < 0.02°)
+function istGleicherOrt(ort, treffer) {
+  return Math.abs(ort.lat - treffer.latitude) < 0.02 && Math.abs(ort.lon - treffer.longitude) < 0.02;
+}
+
+// Während der Suche die Lupe blass machen (und wieder normal)
+function setzeSucht(aktiv) {
+  formular.classList.toggle("sucht", aktiv);
+  if (aktiv) {
+    formular.setAttribute("aria-busy", "true");
+  } else {
+    formular.removeAttribute("aria-busy");
   }
 }
 
-// 11) Letzte Stadt im Browser merken (localStorage)
-function speichereStadt(name) {
-  try {
-    localStorage.setItem("letzteStadt", name);
-  } catch (fehler) {
-    // Speichern geht nicht (z.B. blockiert) – nicht schlimm, wir machen einfach weiter
-  }
-}
-
-function ladeGespeicherteStadt() {
-  try {
-    return localStorage.getItem("letzteStadt");
-  } catch (fehler) {
-    return null;
-  }
-}
-
-// 12) Eine Stadt suchen und ihr Wetter anzeigen
-async function sucheStadt(suchtext) {
+async function suche(text) {
   anfrageNummer++;                 // neue Anfrage = neue Nummer
   const nummer = anfrageNummer;    // die merken wir uns für diese Suche
+  setzeSucht(true);
 
-  // WICHTIG: Das alte Wetter NICHT ausblenden! Sonst wird die Karte kurz
-  // klein und springt. Stattdessen grauen wir es nur leicht aus ("laedt").
-  if (wetterBereich.hidden) {
-    meldung.textContent = "Lade Wetter... ⏳"; // erste Suche: noch nichts zu sehen
-  } else {
-    meldung.textContent = "";
-    wetterBereich.classList.add("laedt");
-    wetterBereich.setAttribute("aria-busy", "true"); // für Screenreader: wird geladen
-  }
-
+  // a) Nur das Laden steht im "try". Fehler hier = Netz oder Server.
+  let treffer;
   let stadt;
+  let wetter = null;
   try {
-    stadt = await findeStadt(suchtext);
+    treffer = await sucheOrtInDerSchweiz(text);
+    stadt = STAEDTE.find((ort) => istGleicherOrt(ort, treffer));
+    if (!stadt && nummer === anfrageNummer) {
+      // Anderer Ort: sein Wetter einzeln laden (gleiche Werte wie die Karte)
+      [wetter] = await holeWetter([{ lat: treffer.latitude, lon: treffer.longitude }]);
+    }
   } catch (fehler) {
-    if (nummer !== anfrageNummer) return; // veraltet: ignorieren
-    beendeLaden();
-    zeigeFehler(fehler);
+    if (nummer === anfrageNummer) {
+      setzeSucht(false);
+      zeigeFehler(fehler);
+    }
     return;
   }
   if (nummer !== anfrageNummer) return; // veraltet: ignorieren
+  setzeSucht(false);
 
-  const geklappt = await ladeUndZeige(stadt, nummer);
-  if (nummer !== anfrageNummer) return; // veraltet: ignorieren
-  beendeLaden();
-  if (geklappt) {
-    speichereStadt(stadt.name); // nur nach erfolgreicher Suche merken
+  // b) Danach zeichnen (ein Fehler hier ist ein Programmfehler, keine Netz-Meldung)
+  eingabe.value = "";
+  meldung.textContent = ""; // eine alte Meldung (z.B. "Ort nicht gefunden.") gilt nicht mehr
+  if (stadt) {
+    // Eine der 12 Städte: einfach diese wählen
+    oeffne(stadt.id);
+  } else {
+    // Anderer Ort: nur in der Detailansicht zeigen, NICHT auf der Karte
+    gesuchterOrt = { id: SUCH_ID, name: treffer.name, lat: treffer.latitude, lon: treffer.longitude, wetter };
+    oeffne(SUCH_ID);
   }
+  // Fokus auf den Namen: der Screenreader liest vor, was jetzt gezeigt wird
+  ueberschrift.focus({ preventScroll: true });
 }
 
-// Das Ausgrauen wieder entfernen
-function beendeLaden() {
-  wetterBereich.classList.remove("laedt");
-  wetterBereich.removeAttribute("aria-busy");
-}
-
-// 13) Wenn der Benutzer auf "Suchen" klickt
+// Enter oder Klick auf die Lupe
 formular.addEventListener("submit", (event) => {
   event.preventDefault(); // verhindert, dass die Seite neu lädt
   const text = eingabe.value.trim();
   if (text === "") {
-    anfrageNummer++; // laufende ältere Anfragen verwerfen
-    beendeLaden();
-    zeigeFehler(new Error("Bitte gib eine Stadt ein."));
+    anfrageNummer++; // laufende ältere Suchen verwerfen
+    setzeSucht(false);
+    zeigeMeldung(TEXT_LEER);
     return;
   }
-  sucheStadt(text);
+  suche(text);
 });
 
-// 14) Beim Laden der Seite: letzte Stadt eintragen und automatisch suchen
-//     Solange geladen wird, ist die Karte versteckt (Klasse "startet",
-//     gesetzt im <head> von index.html). Danach blenden wir sie ein.
-function startFertig() {
-  document.documentElement.classList.remove("startet");
+// 15) Start: alle 12 Städte in EINER Anfrage laden
+async function ladeAlle() {
+  // Hatte "Erneut versuchen" den Fokus? Dann setzen wir ihn danach sinnvoll.
+  const knopfHatteFokus = document.activeElement === nochmalKnopf;
+  nochmalKnopf.disabled = true; // während des Ladens nicht nochmal drückbar
+
+  // a) Nur das Laden steht im "try"
+  let daten;
+  try {
+    daten = await holeWetter(STAEDTE);
+  } catch (fehler) {
+    // Platzhalter bleiben stehen, Meldung + "Erneut versuchen" erscheinen
+    zeigeFehler(fehler);
+    nochmalKnopf.disabled = false;
+    nochmalKnopf.hidden = false;
+    if (knopfHatteFokus) nochmalKnopf.focus();
+    return;
+  }
+
+  // b) Danach zeichnen
+  STAEDTE.forEach((ort, i) => {
+    ort.wetter = daten[i] || null; // jede Antwort gehört zur Stadt an derselben Stelle
+  });
+  meldung.textContent = ""; // eine alte Fehlermeldung gilt nicht mehr
+  nochmalKnopf.hidden = true;
+  nochmalKnopf.disabled = false;
+  fuelleKarte();
+  zeigeDetail();
+  setzeHintergrund();
+  // Der Knopf ist jetzt weg: Fokus auf den Marker der gewählten Stadt
+  if (knopfHatteFokus) {
+    const marker = markerEbene.querySelector('[aria-current="true"]');
+    if (marker) marker.focus();
+  }
 }
 
-const gespeicherteStadt = ladeGespeicherteStadt();
-if (gespeicherteStadt) {
-  eingabe.value = gespeicherteStadt;
-  // .finally = egal ob geklappt oder Fehler: Karte danach zeigen
-  sucheStadt(gespeicherteStadt).finally(startFertig);
-  // Sicherheitsnetz: spätestens nach 12 Sekunden die Karte zeigen
-  setTimeout(startFertig, 12000);
-} else {
-  startFertig();
-}
+// 16) Ereignisse und Start
+nochmalKnopf.addEventListener("click", ladeAlle);
+window.addEventListener("hashchange", zeigeGewaehlteStadt);
+// Karte wird breiter/schmaler: Beschriftungen neu ausrichten
+new ResizeObserver(setzeSeiten).observe(buehne);
+
+// Los geht's: Platzhalter sofort zeigen, dann die Daten holen
+loescheAltenOrt();
+heuteDatum.textContent = kurzesDatum(new Date());
+baueTage();
+baueKarte();
+zeigeGewaehlteStadt();
+ladeAlle();

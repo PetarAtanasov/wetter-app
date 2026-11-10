@@ -1,75 +1,70 @@
 ---
 name: testen
-description: Testet die Wetter-App automatisch im Browser-Fenster - Stadtsuche, 5-Tage-Vorhersage, Tag anklicken, Fehlermeldungen und Handy-Ansicht. Benutzen nach jeder Änderung an index.html, app.js oder style.css, oder wenn jemand fragt "funktioniert die App?".
-argument-hint: "[optionale Stadt, Standard: Berlin]"
+description: Testet die Schweiz-Wetter-App automatisch im Browser-Fenster - Städteliste, Detailansicht, Tage anklicken, Suche, Fehlermeldungen, Handy/Laptop und ob etwas springt. Benutzen nach jeder Änderung an index.html, app.js oder style.css, oder wenn jemand fragt "funktioniert die App?".
+argument-hint: "[optionaler Ort zum Suchen, Standard: Kaisten]"
 ---
 
 # App testen 🧪
 
 Prüfe die Wetter-App im eingebauten Browser. Ändere dabei **keine** Dateien. Erkläre das Ergebnis **kurz auf Deutsch**, denn der Benutzer lernt gerade.
 
-Test-Stadt: $ARGUMENTS (wenn leer: `Berlin`)
+Such-Ort: $ARGUMENTS (wenn leer: `Kaisten`)
 
 ## Schritt 1: App starten
 Starte die App mit `preview_start` und dem Namen `wetter-app` (steht in `.claude/launch.json`).
-Lade die Seite einmal neu, damit die neueste Version läuft.
+Lade die Seite neu (`navigate` auf `http://localhost:8080/`) und warte ca. 3 Sekunden.
+
+## Wichtige Teile der Seite
+- `.panel` = das Glas-Panel (Laptop: Karte links, Detail rechts; Handy: Karte oben, Detail darunter).
+- `.landkarte a` = die 12 festen Städte auf der Schweiz-Karte: Punkt (`.marker-punkt`) und schlichter Text (`.marker-name`, `.marker-temp`), keine Knöpfe. Jede Stadt hat ein `aria-label` wie „Zürich, 14 Grad, Bewölkt“. Es kommen **nie** neue Städte dazu.
+- Oben links die Schweizer Flagge (`role="img"`, Name „Schweiz“) und das Datum.
+- **Wichtig beim Testen:** Im ausgeblendeten Browser-Fenster läuft der `ResizeObserver` nicht. Rufe deshalb nach jedem `resize_window` einmal `setzeSeiten()` auf. Das ist kein Fehler der App.
+- `#stadt-name` (h1), `#temperatur`, `#temperatur-tief`, `#beschreibung`, `#details-zeile` = Detailansicht.
+- `#vorhersage button` = die 5 Tage.
+- `#such-formular`, `#stadt-eingabe`, `.such-knopf` = Suche (nur Schweiz).
+- `#meldung` = schwebende Meldung, `#nochmal-knopf` = „Erneut versuchen“.
+
+Hilfsfunktion für die Panel-Größe:
+```js
+const panel = () => { const k = document.querySelector('.panel').getBoundingClientRect();
+  return `${Math.round(k.top)}/${Math.round(k.width)}x${Math.round(k.height)}`; };
+```
 
 ## Schritt 2: Die Tests
-Benutze `javascript_tool`, um das Formular auszufüllen und abzuschicken
-(`#stadt-eingabe` setzen, dann `#such-formular.requestSubmit()`), und warte ca. 3 Sekunden auf die Antwort.
+1. **Start:** Auf der Karte stehen genau 12 Städte mit echten Temperaturen und nicht mehr mit „–°“.
+2. **Stadt anklicken:** Klicke **alle** Marker nacheinander. Der Hash wechselt (z.B. `#bern`), `#stadt-name` zeigt die Stadt, und genau ein Marker hat `aria-current="true"`.
+3. **Tage anklicken:** Klicke alle 5 Tage und dann wieder „Heute“. Bei einem anderen Tag zeigt die Überschrift das Datum und die Temperatur „X° / Y°“. „Heute“ zeigt wieder das aktuelle Wetter.
+4. **Suche:** Suche den Such-Ort. Er erscheint **nur in der Detailansicht** und **nicht** auf der Karte. Auf der Karte stehen weiter genau 12 Städte, keine ist aktiv (`aria-current`), und der Hash ist `#ort`. Suche dann `Lugano`: Die vorhandene Stadt wird gewählt (`#lugano`). `history.back()` führt zurück zum gesuchten Ort.
+5. **Fehler:** Suche `Xyzqwertstadt` (Meldung „Ort nicht gefunden.“) und `   ` (Meldung „Bitte gib einen Ort ein.“). Ersetze kurz `window.fetch` durch eine Funktion, die mit `new TypeError("Failed to fetch")` fehlschlägt. Dann muss die deutsche Meldung „Keine Verbindung …“ erscheinen. Danach `fetch` wiederherstellen!
+6. **Unbekannter Hash:** Setze `location.hash = '#xyz'`. Es darf nichts abstürzen.
+7. **Konsole:** `read_console_messages` mit `onlyErrors: true` muss leer sein.
 
-Prüfe:
-1. **Suche:** Nach der Suche ist `#meldung` leer und `#wetter` ist sichtbar.
-2. **Vorhersage:** In `#vorhersage` gibt es genau **5** Tage.
-3. **Tag anklicken:** Klicke auf den 3. Tag. Die große Anzeige ändert sich und der Tag ist als aktiv markiert. Klicke dann den 1. Tag: Das aktuelle Wetter ist wieder da.
-4. **Zweite Suche:** Suche eine andere Stadt (z.B. `Sofia`). Es sind immer noch genau 5 Tage, nicht 10.
-5. **Unbekannte Stadt:** Suche `Xyzqwertstadt`. Es erscheint „Stadt nicht gefunden“.
-6. **Kein Internet:** Ersetze kurz `window.fetch` durch eine Funktion, die mit `new TypeError("Failed to fetch")` fehlschlägt. Dann muss eine **deutsche** Meldung erscheinen. Danach `fetch` wiederherstellen!
-7. **Fehler in der Konsole:** `read_console_messages` mit `onlyErrors: true` muss leer sein.
-8. **Layout auf vielen Bildschirmen:** Lege zuerst diese Prüf-Funktion an:
+## Schritt 3: Nichts springt (sehr wichtig!)
+8. **Gleiche Panel-Größe:** Bei allen Klicks aus Test 2, 3 und 5 muss `panel()` **immer gleich** bleiben. Schon 1 px Unterschied heißt: die Karte springt ❌.
+9. **Neuladen:** Lade die Seite neu und lies die Layout-Verschiebungen aus:
    ```js
-   window.pruefe = () => {
-     const k = document.querySelector('.karte').getBoundingClientRect();
-     const raus = [...document.querySelectorAll('.karte *')].filter(el => {
-       if (el.closest('#stunden') && el.id !== 'stunden') return false; // in der Leiste darf gescrollt werden
-       const r = el.getBoundingClientRect();
-       return r.width > 0 && (r.right > k.right + 0.5 || r.left < k.left - 0.5);
-     }).map(el => el.id || el.className || el.tagName);
-     return { breite: innerWidth, seite: document.documentElement.scrollHeight, fenster: innerHeight,
-              seitlich: document.documentElement.scrollWidth > innerWidth, raus: [...new Set(raus)] };
-   };
+   const e = []; await new Promise(res => { new PerformanceObserver(l => { e.push(...l.getEntries()); res(); })
+     .observe({ type: 'layout-shift', buffered: true }); setTimeout(res, 500); });
+   e.reduce((a, x) => a + x.value, 0)   // muss 0 sein
    ```
-   Teste dann mit `resize_window` diese Größen: **360×740, 390×844, 768×1024, 900×700, 1280×720, 1366×768, 1600×800, 1920×1080**.
-   Prüfe jede Größe **zweimal**, einmal mit „Heute“ (das ist der längste Fall mit 12 Stunden) und einmal mit einem anderen angeklickten Tag.
-   - `raus` muss leer sein, sonst ragt etwas aus der Karte.
-   - `seitlich` muss `false` sein.
-   - `seite` darf nicht größer als `fenster` sein, sonst muss man scrollen.
-   Mach einen Screenshot vom Handy (390×844) und vom Laptop (1366×768) und **schau ihn dir genau an**. Ragt etwas über den Rand der weißen Karte? Danach wieder auf `desktop` stellen.
+10. **Langsames Internet:** Bremse `fetch` künstlich (750 ms) und suche einen Ort. Zeichne dabei mit `requestAnimationFrame` **jeden Frame** `panel()` auf. Die Größe darf sich nicht ändern.
 
-9. **Nichts springt beim Suchen:** Nach einer ersten Suche suchst du eine zweite Stadt, und zwar per **echtem Klick** auf den Suchen-Knopf, nicht nur mit `requestSubmit()`. Zeichne dabei mit `requestAnimationFrame` **jeden Frame** auf: Position und Größe von `.karte` sowie `#wetter.hidden`. Bremse `fetch` vorher künstlich (ca. 750 ms Wartezeit), damit man auch langsames Internet sieht.
-   - Die Karte darf ihre Größe und Position während des Ladens **nicht** ändern. Erst das neue Ergebnis darf sie ändern.
-   - `#wetter` darf zwischendurch nicht `hidden` werden.
+## Schritt 4: Viele Bildschirme
+11. Teste mit `resize_window` diese Größen: **360×740, 390×844, 768×1024, 900×700, 1280×720, 1366×768, 1600×800, 1920×1080**.
+    - Die Seite darf nicht scrollen (`document.documentElement.scrollHeight` ≤ `innerHeight`, `scrollWidth` ≤ `innerWidth`).
+    - Kein Element ragt aus `.panel` heraus.
+    - **Keine Beschriftung überdeckt eine andere.** Wähle jede Stadt einmal. Vergleiche dann die **einzelnen Teile** (`.marker-punkt`, `.marker-name`, `.marker-temp`, `.ic`) jeder Stadt mit den Teilen aller anderen Städte per `getBoundingClientRect`. Nimm **kein** großes Rechteck um eine ganze Stadt, sonst meldet der Test Überlappungen, die man gar nicht sieht.
+    - **Handy (unter 900 px):** Karte oben, Detail darunter. Ein Tipp auf einen Marker wechselt die Stadt, und `history.back()` führt zur vorherigen Stadt.
+    - **Laptop (ab 900 px):** Karte links, Detail rechts.
+12. Mach Screenshots vom Handy und vom Laptop und **schau sie dir genau an**. Achte darauf, ob etwas abgeschnitten ist, sich überlappt oder schlecht lesbar ist. Prüfe auch den Dark Mode (`resize_window` mit `colorScheme: "dark"`). Danach wieder auf `desktop` und `light` stellen.
 
-10. **Nichts springt beim Neuladen:** Suche zuerst eine Stadt, damit sie gespeichert ist. Lade dann die Seite neu (`navigate`) und lies danach die Layout-Verschiebungen aus:
-    ```js
-    const e = []; await new Promise(res => { new PerformanceObserver(l => { e.push(...l.getEntries()); res(); })
-      .observe({ type: 'layout-shift', buffered: true }); setTimeout(res, 500); });
-    e.reduce((a, x) => a + x.value, 0)   // muss 0 sein
-    ```
-    Prüfe außerdem zwei Fälle: Ohne gespeicherte Stadt ist die Karte sofort sichtbar. Mit einer gespeicherten **unbekannten** Stadt erscheint die Karte mit der Meldung „Stadt nicht gefunden“ und bleibt nicht unsichtbar.
-11. **Gleiche Höhe in jeder Ansicht:** Prüfe bei jeder Größe aus Test 8, ob die Höhe der `.karte` gleich bleibt, wenn man
-    - alle 5 Tage nacheinander anklickt,
-    - eine unbekannte Stadt sucht, während schon Wetter angezeigt wird (die Meldung muss als Blase **über** der Karte schweben),
-    - eine Stadt mit **langem Namen** sucht (z.B. `Garmisch-Partenkirchen`) und dann einen Tag anklickt.
-    Schon 1 px Unterschied heißt: die Karte springt ❌.
-
-## Schritt 3: Ergebnis
+## Schritt 5: Ergebnis
 Zeig eine kurze Liste:
 
 ```
-✅ Suche
-✅ 5-Tage-Vorhersage
-❌ Tag anklicken – <was genau falsch war>
+✅ Start: 12 Städte
+✅ Stadt anklicken
+❌ Tage anklicken – <was genau falsch war>
 ...
 ```
 
