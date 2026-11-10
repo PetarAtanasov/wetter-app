@@ -75,6 +75,33 @@ button:hover {
   color: #636e72;
 }
 
+/* ===== Vorhersage (5 Tage) ===== */
+.vorhersage {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap; /* auf schmalen Bildschirmen umbrechen */
+  gap: 8px;
+  justify-content: center;
+}
+
+.vorhersage-tag {
+  flex: 1 1 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+  background: #f1f5fb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #636e72;
+}
+
+.vorhersage-icon {
+  font-size: 28px;
+}
+
 #meldung {
   color: #d63031;
   min-height: 1.2em;
