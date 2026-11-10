@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wetter-App</title>
+  <!-- Hier verbinden wir das Aussehen (CSS) -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="karte">
+    <h1>🌤️ Wetter-App</h1>
+
+    <!-- Das Formular: Stadt eingeben + Button -->
+    <form id="such-formular">
+      <input id="stadt-eingabe" type="text" placeholder="Stadt eingeben, z.B. Berlin" required>
+      <button type="submit">Suchen</button>
+    </form>
+
+    <!-- Hier zeigen wir Meldungen an (Laden..., Fehler) -->
+    <p id="meldung"></p>
+
+    <!-- Hier erscheint das Wetter. Am Anfang versteckt (hidden). -->
+    <section id="wetter" hidden>
+      <h2 id="stadt-name"></h2>
+      <div id="wetter-icon" class="icon"></div>
+      <p id="temperatur" class="temperatur"></p>
+      <p id="beschreibung"></p>
+      <ul class="details">
+        <li>💧 Luftfeuchtigkeit: <span id="feuchtigkeit"></span></li>
+        <li>💨 Wind: <span id="wind"></span></li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- Hier verbinden wir die Logik (JavaScript) -->
+  <script src="app.js"></script>
+</body>
+</html>
