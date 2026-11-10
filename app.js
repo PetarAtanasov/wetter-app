@@ -109,6 +109,12 @@ formular.addEventListener("submit", async (event) => {
     zeigeVorhersage(wetter.taeglich);
     meldung.textContent = "";
   } catch (fehler) {
-    meldung.textContent = fehler.message || "Etwas ist schiefgelaufen.";
+    // fetch wirft einen "TypeError", wenn gar keine Verbindung möglich ist
+    // (z.B. kein Internet). Die englische Meldung "Failed to fetch" ersetzen wir.
+    if (fehler instanceof TypeError) {
+      meldung.textContent = "Keine Verbindung zum Wetter-Server 📡 Bitte prüfe dein Internet.";
+    } else {
+      meldung.textContent = fehler.message || "Etwas ist schiefgelaufen.";
+    }
   }
 });
