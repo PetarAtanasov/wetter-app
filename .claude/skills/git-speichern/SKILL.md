@@ -1,6 +1,6 @@
 ---
 name: git-speichern
-description: Speichert die aktuellen Änderungen der Wetter-App mit Git und lädt sie auf GitHub hoch (add, commit, push). Mit einer guten deutschen Commit-Nachricht und einer Sicherheitsprüfung vorher.
+description: Speichert die aktuellen Änderungen der Wetter-App mit Git und lädt sie auf GitHub hoch (add, commit, push). Lädt auch Commits hoch, die schon gespeichert, aber noch nicht auf GitHub sind. Mit einer guten deutschen Commit-Nachricht und einer Sicherheitsprüfung vorher.
 disable-model-invocation: true
 argument-hint: "[optionale Commit-Nachricht]"
 ---
@@ -14,9 +14,15 @@ Führe aus:
 ```
 git status --short
 git diff --stat
+git fetch
+git log --oneline origin/main..HEAD
 ```
-- Wenn es **keine Änderungen** gibt: Sag „Nichts zu speichern ✅“ und hör auf.
-- Zeig dem Benutzer eine kurze Liste der geänderten Dateien.
+Der letzte Befehl zeigt Commits, die schon **gespeichert**, aber noch **nicht auf GitHub** sind.
+
+Danach gibt es drei Fälle:
+- **Geänderte Dateien vorhanden:** Zeig eine kurze Liste und mach weiter mit Schritt 2.
+- **Keine geänderten Dateien, aber Commits noch nicht auf GitHub:** Zeig die Liste dieser Commits und erkläre kurz: „Diese Commits sind gespeichert, aber noch nicht hochgeladen.“ Mach den Sicherheits-Check aus Schritt 2 mit `git diff origin/main..HEAD`. Überspring Schritt 3 und führe in Schritt 4 nur `git push` aus.
+- **Weder Änderungen noch Commits zum Hochladen:** Sag „Nichts zu speichern ✅ – alles ist schon auf GitHub.“ und hör auf.
 
 ## Schritt 2: Sicherheits-Check 🔒
 Prüfe die Änderungen (`git diff`) auf:
