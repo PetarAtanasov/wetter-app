@@ -7,14 +7,29 @@
 
 /* ===== Farben als Variablen (hier kannst du alle Farben an einem Ort ändern) ===== */
 :root {
-  color-scheme: light dark;         /* Browser-Elemente passen sich dem Modus an */
-  --karte: #ffffff;                /* Hintergrund der Karte */
-  --text: #2d3436;                  /* normale Schrift */
-  --text-leise: #4b565a;            /* etwas hellere Schrift (Details, Kästchen) */
-  --kaestchen: #f1f5fb;             /* Hintergrund der kleinen Kästchen */
-  --kaestchen-hover: #e1e9f5;       /* Kästchen, wenn die Maus darüber ist */
-  --kaestchen-aktiv: #e0e7ff;       /* der gewählte Tag (zartes Indigo) */
-  --akzent: #4f46e5;                /* Hauptfarbe (Rahmen, Fokus) = Ende des Knopf-Verlaufs */
+  /* "dark": Scrollleisten & Co. hell zeichnen, weil der Hintergrund immer dunkel ist */
+  color-scheme: dark;
+  --karte: transparent;             /* Karte ist durchsichtig: der Wetter-Hintergrund scheint durch */
+  --text: #ffffff;                  /* normale Schrift: weiß */
+  --text-leise: rgba(255, 255, 255, 0.8); /* leise Schrift: weiß mit 80 % Deckkraft */
+  --text-schatten: 0 1px 2px rgba(0, 0, 0, 0.25); /* zarter Schatten, damit Schrift sich abhebt */
+
+  /* Glas-Kacheln: halbdurchsichtiges Weiß + Unschärfe des Hintergrunds */
+  --kaestchen: rgba(255, 255, 255, 0.14);       /* normale Kachel */
+  --kaestchen-hover: rgba(255, 255, 255, 0.20); /* Maus darüber: etwas heller */
+  --kaestchen-aktiv: rgba(255, 255, 255, 0.24); /* gewählter Tag: noch heller (+ weißer Rahmen) */
+  --kaestchen-rand: rgba(255, 255, 255, 0.22);  /* feiner heller Rand */
+  --glas-filter: blur(14px) saturate(140%);     /* Milchglas-Effekt */
+  /* Ersatz-Kacheln für Browser OHNE Milchglas: dunkler und deckender */
+  --kaestchen-ersatz: rgba(10, 20, 35, 0.45);
+  --kaestchen-ersatz-hover: rgba(10, 20, 35, 0.35);
+  --kaestchen-ersatz-aktiv: rgba(10, 20, 35, 0.2);
+
+  /* Dunkler Schleier über dem Wetter-Effekt, unter der Karte.
+     Er dämpft helle Effekte (Sonne, Wolken), damit weiße Schrift lesbar bleibt. */
+  --schleier: rgba(0, 0, 0, 0.12);
+
+  --akzent: #ffffff;                /* Fokus-Rahmen: weiß, gut sichtbar auf dem dunklen Hintergrund */
   /* Suchen-Knopf: Verlauf von Himmelblau zu Indigo.
      Weiße Schrift hat überall mind. 4.5:1 Kontrast (hellste Stelle: 5.93:1) */
   --knopf-start: #0369a1;
@@ -23,45 +38,50 @@
   --knopf-hover-ende: #5b50e8;
   --knopf-schatten: rgba(79, 70, 229, 0.35); /* dezenter farbiger Schatten */
   --knopf-text: #ffffff;            /* Schrift auf Knöpfen */
-  --eingabe-hintergrund: #ffffff;   /* Hintergrund des Eingabefelds */
-  --eingabe-rahmen: #b2bec3;        /* Rahmen des Eingabefelds */
-  --fehler: #b71c1c;                /* Fehlermeldungen (rot) */
-  --fehler-blase: #c62828;          /* Hintergrund der Fehler-Blase (gleich in hell und dunkel) */
-  --schatten: rgba(0, 0, 0, 0.2);   /* Schatten der Karte */
+  --eingabe-hintergrund: rgba(255, 255, 255, 0.14); /* Eingabefeld: ebenfalls Glas */
+  --eingabe-rahmen: rgba(255, 255, 255, 0.35);      /* heller, feiner Rahmen */
+  --platzhalter: rgba(255, 255, 255, 0.8);          /* "Stadt eingeben…" (Kontrast mind. 4.5:1) */
+  --fehler: #ffffff;                /* Meldungen vor der ersten Suche: weiß auf Glas-Blase */
+  --fehler-blase: #c62828;          /* Hintergrund der roten Fehler-Blase (gleich in hell und dunkel) */
+  --schatten: rgba(0, 0, 0, 0.2);   /* Schatten der Fehler-Blase */
 
-  /* Hintergrund-Verläufe (Standard und je nach Wetter) */
-  --verlauf: linear-gradient(160deg, #74b9ff, #0652dd);
-  --verlauf-sonne: linear-gradient(160deg, #3d9bff, #ffc266);   /* wärmer */
-  --verlauf-wolken: linear-gradient(160deg, #8fa9c4, #5b7a9d);
-  --verlauf-nebel: linear-gradient(160deg, #cfd5d9, #8d979c);
-  --verlauf-regen: linear-gradient(160deg, #6f8296, #2f4357);   /* dunkler, grauer */
-  --verlauf-schnee: linear-gradient(160deg, #bcd6ee, #7fa6cc);  /* damit weiße Flocken sichtbar sind */
-  --verlauf-gewitter: linear-gradient(160deg, #5b4f73, #2a2438);
+  /* Hintergrund-Verläufe (Standard und je nach Wetter).
+     Satt und eher dunkel, damit weiße Schrift überall mind. 4.5:1 Kontrast hat
+     (auch auf den Glas-Kacheln). Die Werte stehen im Bericht. */
+  --verlauf: linear-gradient(160deg, #1d5792, #0f3a80);          /* tiefes Blau */
+  --verlauf-sonne: linear-gradient(160deg, #1d5792, #933d0e);    /* Himmelblau zu warmem Orange */
+  --verlauf-wolken: linear-gradient(160deg, #46566a, #2c3b4e);   /* Blaugrau */
+  --verlauf-nebel: linear-gradient(160deg, #4f555b, #33393e);    /* neutrales Grau */
+  --verlauf-regen: linear-gradient(160deg, #3d4b5a, #1f2d3c);    /* dunkler, grauer */
+  --verlauf-schnee: linear-gradient(160deg, #2b587e, #1f3f60);   /* kaltes Eisblau, Flocken gut sichtbar */
+  --verlauf-gewitter: linear-gradient(160deg, #4a3f63, #1c1828); /* dunkles Violett */
 
   /* Farben und Stärke der Wetter-Effekte */
   --effekt-staerke: 1;                           /* Regen/Schnee: 1 = voll */
   --regen-fern: rgba(255, 255, 255, 0.35);       /* hintere Regenebene */
   --regen-nah: rgba(255, 255, 255, 0.55);        /* vordere Regenebene */
   --schnee-farbe: rgba(255, 255, 255, 0.95);
-  --wolke: rgba(255, 255, 255, 0.55);
-  --nebel: rgba(255, 255, 255, 0.4);
+  --wolke: rgba(255, 255, 255, 0.28);            /* zarter, damit Schrift darauf lesbar bleibt */
+  --nebel: rgba(255, 255, 255, 0.25);
   --sonne-kern: #fffbe0;                         /* Farben der Sonne (innen nach außen) */
   --sonne-mitte: #ffd54a;
   --sonne-glow: rgba(255, 200, 60, 0.4);
-  --strahlen: rgba(255, 244, 180, 0.35);
+  --strahlen: rgba(255, 244, 180, 0.25);
   --sonne-staerke: 1;
 }
 
 /* ===== Dark Mode: folgt der Systemeinstellung ===== */
 @media (prefers-color-scheme: dark) {
   :root {
-    --karte: #1e272e;
-    --text: #f1f2f6;
-    --text-leise: #b2bec3;
-    --kaestchen: #2f3a44;
-    --kaestchen-hover: #3b4853;
-    --kaestchen-aktiv: #2e3466;     /* dunkles Indigo */
-    --akzent: #a5b4fc;              /* helles Indigo, gut sichtbar auf dunkler Karte */
+    /* Gleicher Glas-Look, nur die Kacheln etwas zarter (Hintergrund ist dunkler) */
+    --karte: transparent;
+    --text: #ffffff;
+    --text-leise: rgba(255, 255, 255, 0.8);
+    --kaestchen: rgba(255, 255, 255, 0.12);
+    --kaestchen-hover: rgba(255, 255, 255, 0.18);
+    --kaestchen-aktiv: rgba(255, 255, 255, 0.22);
+    --kaestchen-rand: rgba(255, 255, 255, 0.18);
+    --akzent: #ffffff;              /* Fokus-Rahmen: weiß */
     /* Verlauf etwas tiefer, damit er nicht grell wirkt (hellste Stelle: 5.93:1) */
     --knopf-start: #0369a1;
     --knopf-ende: #4338ca;
@@ -69,19 +89,19 @@
     --knopf-hover-ende: #4f46e5;
     --knopf-schatten: rgba(99, 102, 241, 0.45);
     --knopf-text: #ffffff;
-    --eingabe-hintergrund: #2f3a44;
-    --eingabe-rahmen: #5d6d78;
-    --fehler: #ff8a8a;
+    --eingabe-hintergrund: rgba(255, 255, 255, 0.12);
+    --eingabe-rahmen: rgba(255, 255, 255, 0.3);
+    --fehler: #ffffff;
     --schatten: rgba(0, 0, 0, 0.5);
 
-    /* etwas dunklere Verläufe */
-    --verlauf: linear-gradient(160deg, #1f3b66, #0a1f4d);
-    --verlauf-sonne: linear-gradient(160deg, #1d4a80, #8a5a1c);
-    --verlauf-wolken: linear-gradient(160deg, #33465c, #1f2d3d);
-    --verlauf-nebel: linear-gradient(160deg, #4a5257, #2b3135);
-    --verlauf-regen: linear-gradient(160deg, #36475a, #172330);
-    --verlauf-schnee: linear-gradient(160deg, #4a6784, #2a3d52);
-    --verlauf-gewitter: linear-gradient(160deg, #2e2740, #120f1b);
+    /* etwas dunklere Verläufe (Nacht-Stimmung) */
+    --verlauf: linear-gradient(160deg, #12305a, #071739);
+    --verlauf-sonne: linear-gradient(160deg, #163d6b, #6b3410);
+    --verlauf-wolken: linear-gradient(160deg, #2b3a4c, #18222f);
+    --verlauf-nebel: linear-gradient(160deg, #3a4045, #212629);
+    --verlauf-regen: linear-gradient(160deg, #2a3848, #111a24);
+    --verlauf-schnee: linear-gradient(160deg, #213f5c, #142a40);
+    --verlauf-gewitter: linear-gradient(160deg, #2a2340, #100d18);
 
     /* Effekte im Dunkeln dezenter */
     --effekt-staerke: 0.6;
@@ -142,6 +162,17 @@ body[data-wetter="gewitter"] { background: var(--verlauf-gewitter); }
   --sx: 30px;     /* Abstand der Sonnenmitte vom rechten Rand */
   --sy: 40px;     /* Abstand der Sonnenmitte vom oberen Rand */
   --sg: 260px;    /* Größe der Sonne inklusive Glow */
+}
+
+/* Dunkler Schleier: liegt ÜBER dem Wetter-Effekt (z-index 1) und UNTER der Karte (z-index 2).
+   So bleibt weiße Schrift auch vor hellen Wolken oder der Sonne lesbar. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--schleier);
 }
 
 /* Ohne data-wetter (vor der Suche) gibt es keine Ebenen */
@@ -328,12 +359,13 @@ body[data-wetter="sonne"] .wetter-effekt::after {
   to   { transform: rotate(360deg); }
 }
 
-/* Am Tablet/Laptop ist die Sonne größer und steht ganz im Bild */
+/* Am Tablet/Laptop ist die Sonne größer. Sie sitzt nah an der Ecke oben rechts,
+   damit die helle Scheibe nicht hinter dem Eingabefeld oder den Kacheln liegt. */
 @media (min-width: 600px) {
   .wetter-effekt {
-    --sx: 150px;
-    --sy: 140px;
-    --sg: 480px;
+    --sx: 70px;
+    --sy: 60px;
+    --sg: 420px;
   }
 }
 
@@ -425,15 +457,15 @@ body[data-wetter="nebel"] .wetter-effekt::after {
 
 /* ===== Die Karte in der Mitte ===== */
 .karte {
-  position: relative;               /* liegt über dem Wetter-Effekt */
-  z-index: 1;
-  background: var(--karte);
+  position: relative;               /* liegt über Wetter-Effekt und Schleier */
+  z-index: 2;
+  background: var(--karte);         /* durchsichtig: kein weißer Kasten, kein Schatten */
   border-radius: 20px;
   padding: 16px;
   width: 100%;
   max-width: 560px;
   text-align: left;
-  box-shadow: 0 10px 30px var(--schatten);
+  text-shadow: var(--text-schatten); /* jede Schrift in der Karte bekommt den zarten Schatten */
   display: flex;                    /* alles untereinander */
   flex-direction: column;
   gap: 16px;
@@ -467,12 +499,14 @@ input {
   font-family: inherit;
   color: var(--text);
   background: var(--eingabe-hintergrund);
+  -webkit-backdrop-filter: var(--glas-filter); /* Milchglas (Safari) */
+  backdrop-filter: var(--glas-filter);         /* Milchglas */
   border: 2px solid var(--eingabe-rahmen);
   border-radius: 10px;
 }
 
 input::placeholder {
-  color: var(--text-leise);
+  color: var(--platzhalter);
   opacity: 1;
 }
 
@@ -529,7 +563,8 @@ button:focus-visible {
 
 /* Bewegung reduzieren: Knopf bewegt sich nicht */
 @media (prefers-reduced-motion: reduce) {
-  .such-knopf {
+  .such-knopf,
+  .vorhersage-tag {
     transition: none;
   }
   .such-knopf:hover,
@@ -538,11 +573,25 @@ button:focus-visible {
   }
 }
 
-/* ===== Meldungen (immer rot) ===== */
+/* ===== Meldungen ===== */
 /* Nicht mit display:none verstecken, sonst liest der Screenreader nichts vor */
 #meldung {
   color: var(--fehler);
   min-height: 0;
+}
+
+/* Vor der ersten Suche ("Lade Wetter…", "Stadt nicht gefunden"):
+   kleine Glas-Blase mit weißer Schrift, gut lesbar auf jedem Hintergrund */
+#meldung:not(:empty) {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--kaestchen);
+  -webkit-backdrop-filter: var(--glas-filter);
+  backdrop-filter: var(--glas-filter);
+  box-shadow: inset 0 0 0 1px var(--kaestchen-rand); /* feiner Rand, ohne Platz zu brauchen */
+  font-weight: 600;
 }
 
 /* Leere Meldung: den Abstand (gap) davor wieder "zurücknehmen" */
@@ -563,7 +612,9 @@ button:focus-visible {
   width: max-content;
   padding: 8px 16px;
   border-radius: 999px;
-  background: var(--fehler-blase);
+  background: var(--fehler-blase);  /* rote Blase statt Glas */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   color: white;
   box-shadow: 0 6px 18px var(--schatten);
 }
@@ -610,7 +661,7 @@ button:focus-visible {
   border: 4px solid rgba(255, 255, 255, 0.4);
   border-top-color: white;
   border-radius: 50%;
-  z-index: 2;
+  z-index: 3;                       /* über Schleier und (unsichtbarer) Karte */
   animation: lader-dreht 0.8s linear infinite;
 }
 
@@ -713,12 +764,24 @@ button:focus-visible {
   gap: 8px;
 }
 
+/* ===== Glas-Kacheln (Details, Stunden, Tage) ===== */
+/* Halbdurchsichtig hell + Milchglas. Den feinen Rand malen wir mit einem
+   inneren Schatten (inset): er sieht aus wie "1px solid", braucht aber keinen
+   Platz. So bleiben alle Kacheln genau gleich groß wie vorher. */
+.details li,
+.stunde,
+.vorhersage-tag {
+  background: var(--kaestchen);
+  -webkit-backdrop-filter: var(--glas-filter);
+  backdrop-filter: var(--glas-filter);
+  box-shadow: inset 0 0 0 1px var(--kaestchen-rand);
+}
+
 .details li {
   display: flex;
   flex-direction: column;           /* Beschriftung oben, Wert darunter */
   gap: 2px;
   padding: 8px 12px;
-  background: var(--kaestchen);
   border-radius: 12px;
 }
 
@@ -760,6 +823,7 @@ button:focus-visible {
      Leiste bei 12 Stunden höher als bei 8 und die Karte würde springen. */
   overflow-x: scroll;
   scrollbar-width: thin;            /* schmale Scrollleiste */
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent; /* heller Griff, unsichtbare Schiene */
   scroll-snap-type: x proximity;    /* rastet sanft an den Kästchen ein */
 }
 
@@ -777,11 +841,10 @@ button:focus-visible {
   gap: 2px;
   min-width: 52px;
   padding: 6px 4px;
-  background: var(--kaestchen);
   border-radius: 12px;
   font-size: 0.8125rem;
   text-align: center;
-  color: var(--text-leise);
+  color: var(--text);               /* Uhrzeit und Grad: weiß */
   scroll-snap-align: start;
 }
 
@@ -816,23 +879,41 @@ button:focus-visible {
   align-items: center;
   gap: 2px;
   padding: 8px 2px;
-  background: var(--kaestchen);
   border-radius: 12px;
   font-size: 0.8125rem;
-  color: var(--text-leise);
+  color: var(--text);               /* Schrift weiß */
   font-family: inherit;
+  transition: background-color 0.15s ease;
 }
 
 .vorhersage-tag:hover {
   background: var(--kaestchen-hover);
 }
 
-/* Der gewählte Tag: Akzent-Rahmen (innen, damit nichts wackelt) + andere Farbe */
+/* Der gewählte Tag: hellere Glasfläche + weißer 2px-Rahmen (innen, damit nichts wackelt) */
 .vorhersage-tag.aktiv {
   background: var(--kaestchen-aktiv);
   color: var(--text);
   font-weight: bold;
-  box-shadow: inset 0 0 0 2px var(--akzent);
+  box-shadow: inset 0 0 0 2px #ffffff;
+}
+
+/* Browser OHNE Milchglas: dunklere, deckendere Kacheln, damit die Schrift lesbar bleibt.
+   Der gewählte Tag bleibt heller als die anderen und behält seinen weißen Rahmen. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .details li,
+  .stunde,
+  .vorhersage-tag,
+  input,
+  #meldung:not(:empty) {
+    background: var(--kaestchen-ersatz);
+  }
+  .vorhersage-tag:hover {
+    background: var(--kaestchen-ersatz-hover);
+  }
+  .vorhersage-tag.aktiv {
+    background: var(--kaestchen-ersatz-aktiv);
+  }
 }
 
 .vorhersage-icon {
