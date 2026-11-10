@@ -26,6 +26,7 @@
   --eingabe-hintergrund: #ffffff;   /* Hintergrund des Eingabefelds */
   --eingabe-rahmen: #b2bec3;        /* Rahmen des Eingabefelds */
   --fehler: #b71c1c;                /* Fehlermeldungen (rot) */
+  --fehler-blase: #c62828;          /* Hintergrund der Fehler-Blase (gleich in hell und dunkel) */
   --schatten: rgba(0, 0, 0, 0.2);   /* Schatten der Karte */
 
   /* Hintergrund-Verläufe (Standard und je nach Wetter) */
@@ -549,11 +550,85 @@ button:focus-visible {
   margin-top: -16px;
 }
 
+/* Wird schon Wetter angezeigt, schwebt eine Meldung als kleine "Blase"
+   unten über der Karte, statt Platz einzunehmen. So springt die Karte nicht. */
+.karte:has(#wetter:not([hidden])) #meldung {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  max-width: calc(100% - 32px);
+  width: max-content;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--fehler-blase);
+  color: white;
+  box-shadow: 0 6px 18px var(--schatten);
+}
+
+/* Leere Blase: unsichtbar */
+.karte:has(#wetter:not([hidden])) #meldung:empty {
+  padding: 0;
+  box-shadow: none;
+  background: none;
+}
+
 /* ===== Wetter-Bereich: am Handy alles untereinander ===== */
 #wetter {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: opacity 0.2s;
+}
+
+/* ===== Start mit gespeicherter Stadt ===== */
+/* Die Karte wird sanft eingeblendet, sobald das Wetter da ist */
+.karte {
+  transition: opacity 0.3s;
+}
+
+/* Beim Start: Karte unsichtbar (sie behält aber ihren Platz) */
+.startet .karte {
+  opacity: 0;
+}
+
+/* Kleiner drehender Lade-Kreis in der Mitte, nur beim Start */
+.start-lader {
+  display: none;
+}
+
+.startet .start-lader {
+  display: block;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 4px solid rgba(255, 255, 255, 0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  z-index: 2;
+  animation: lader-dreht 0.8s linear infinite;
+}
+
+@keyframes lader-dreht {
+  to { transform: rotate(360deg); }
+}
+
+/* Weniger Bewegung gewünscht: kein Drehen, kein Einblenden */
+@media (prefers-reduced-motion: reduce) {
+  .startet .start-lader { animation: none; }
+  .karte { transition: none; }
+}
+
+/* Während eine neue Stadt lädt: altes Wetter leicht ausgrauen,
+   statt es zu verstecken (sonst springt die Karte) */
+#wetter.laedt {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .spalte {
@@ -580,6 +655,22 @@ button:focus-visible {
   font-size: clamp(1.0625rem, 0.95rem + 0.6vw, 1.5rem);
   font-weight: 600;
   margin-bottom: 6px;
+  display: flex;       /* Ort und Datum nebeneinander, immer nur 1 Zeile */
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Ortsname: wird bei zu wenig Platz mit "…" abgekürzt */
+.hero-ort-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Datum: wird nie abgekürzt */
+.hero-datum {
+  flex-shrink: 0;
+  white-space: pre;    /* behält das Leerzeichen vor dem Strich */
 }
 
 .temperatur {
@@ -665,7 +756,9 @@ button:focus-visible {
   margin: 0;
   display: flex;
   gap: 6px;
-  overflow-x: auto;
+  /* "scroll" statt "auto": Die Scrollleiste ist IMMER da. Sonst wäre die
+     Leiste bei 12 Stunden höher als bei 8 und die Karte würde springen. */
+  overflow-x: scroll;
   scrollbar-width: thin;            /* schmale Scrollleiste */
   scroll-snap-type: x proximity;    /* rastet sanft an den Kästchen ein */
 }

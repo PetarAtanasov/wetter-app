@@ -88,6 +88,18 @@ function setzeSichtbar(id, sichtbar) {
 
 // Eine Fehlermeldung in #meldung anzeigen
 function zeigeFehler(fehler) {
+  zeigeMeldungsText(fehler);
+  // Wird schon Wetter angezeigt, schwebt die Meldung als Blase über der Karte.
+  // Die blenden wir nach 5 Sekunden wieder aus, damit sie nichts verdeckt.
+  if (!wetterBereich.hidden) {
+    const text = meldung.textContent;
+    setTimeout(() => {
+      if (meldung.textContent === text) meldung.textContent = "";
+    }, 5000);
+  }
+}
+
+function zeigeMeldungsText(fehler) {
   // Zu lange gewartet (Timeout nach 10 Sekunden)
   if (fehler.name === "TimeoutError") {
     meldung.textContent = "Der Server antwortet nicht ⏱️ Bitte später nochmal versuchen.";
@@ -108,18 +120,28 @@ function zeigeHauptanzeige(index) {
   const heute = index === 0;
   const tag = d.taeglich;
 
-  // Ortsname (mit Land, falls vorhanden)
-  let titel = d.stadt.land ? `${d.stadt.name}, ${d.stadt.land}` : d.stadt.name;
+  // Überschrift aus zwei Teilen: Ort (wird bei Platzmangel mit "…" gekürzt)
+  // und Datum (wird nie gekürzt). So bleibt sie immer EINE Zeile hoch
+  // und die Karte springt beim Anklicken eines Tages nicht.
+  const ueberschrift = document.getElementById("stadt-name");
+  ueberschrift.textContent = ""; // alten Inhalt leeren
+  const ortTeil = document.createElement("span");
+  ortTeil.className = "hero-ort-name";
+  ortTeil.textContent = d.stadt.land ? `${d.stadt.name}, ${d.stadt.land}` : d.stadt.name;
+  ortTeil.title = ortTeil.textContent; // voller Name beim Drüberfahren mit der Maus
+  ueberschrift.append(ortTeil);
   // Bei einem anderen Tag hängen wir Wochentag und Datum an
   if (!heute) {
-    titel += ` – ${kurzerWochentag(tag.time[index])}, ${kurzesDatum(tag.time[index])}`;
+    const datumTeil = document.createElement("span");
+    datumTeil.className = "hero-datum";
+    datumTeil.textContent = ` – ${kurzerWochentag(tag.time[index])}, ${kurzesDatum(tag.time[index])}`;
+    ueberschrift.append(datumTeil);
   }
 
   // Heute: Code vom aktuellen Wetter, sonst vom Tag
   const code = heute ? d.aktuell.weather_code : tag.weather_code[index];
   const [emoji, text, art] = wetterBeschreibung(code);
 
-  document.getElementById("stadt-name").textContent = titel;
   document.getElementById("wetter-icon").textContent = emoji;
   document.getElementById("beschreibung").textContent = text;
   document.body.setAttribute("data-wetter", art); // für den Hintergrund
@@ -302,23 +324,40 @@ function ladeGespeicherteStadt() {
 async function sucheStadt(suchtext) {
   anfrageNummer++;                 // neue Anfrage = neue Nummer
   const nummer = anfrageNummer;    // die merken wir uns für diese Suche
-  meldung.textContent = "Lade Wetter... ⏳";
-  wetterBereich.hidden = true;
+
+  // WICHTIG: Das alte Wetter NICHT ausblenden! Sonst wird die Karte kurz
+  // klein und springt. Stattdessen grauen wir es nur leicht aus ("laedt").
+  if (wetterBereich.hidden) {
+    meldung.textContent = "Lade Wetter... ⏳"; // erste Suche: noch nichts zu sehen
+  } else {
+    meldung.textContent = "";
+    wetterBereich.classList.add("laedt");
+    wetterBereich.setAttribute("aria-busy", "true"); // für Screenreader: wird geladen
+  }
 
   let stadt;
   try {
     stadt = await findeStadt(suchtext);
   } catch (fehler) {
     if (nummer !== anfrageNummer) return; // veraltet: ignorieren
+    beendeLaden();
     zeigeFehler(fehler);
     return;
   }
   if (nummer !== anfrageNummer) return; // veraltet: ignorieren
 
   const geklappt = await ladeUndZeige(stadt, nummer);
-  if (geklappt && nummer === anfrageNummer) {
+  if (nummer !== anfrageNummer) return; // veraltet: ignorieren
+  beendeLaden();
+  if (geklappt) {
     speichereStadt(stadt.name); // nur nach erfolgreicher Suche merken
   }
+}
+
+// Das Ausgrauen wieder entfernen
+function beendeLaden() {
+  wetterBereich.classList.remove("laedt");
+  wetterBereich.removeAttribute("aria-busy");
 }
 
 // 13) Wenn der Benutzer auf "Suchen" klickt
@@ -327,15 +366,27 @@ formular.addEventListener("submit", (event) => {
   const text = eingabe.value.trim();
   if (text === "") {
     anfrageNummer++; // laufende ältere Anfragen verwerfen
-    meldung.textContent = "Bitte gib eine Stadt ein.";
+    beendeLaden();
+    zeigeFehler(new Error("Bitte gib eine Stadt ein."));
     return;
   }
   sucheStadt(text);
 });
 
 // 14) Beim Laden der Seite: letzte Stadt eintragen und automatisch suchen
+//     Solange geladen wird, ist die Karte versteckt (Klasse "startet",
+//     gesetzt im <head> von index.html). Danach blenden wir sie ein.
+function startFertig() {
+  document.documentElement.classList.remove("startet");
+}
+
 const gespeicherteStadt = ladeGespeicherteStadt();
 if (gespeicherteStadt) {
   eingabe.value = gespeicherteStadt;
-  sucheStadt(gespeicherteStadt);
+  // .finally = egal ob geklappt oder Fehler: Karte danach zeigen
+  sucheStadt(gespeicherteStadt).finally(startFertig);
+  // Sicherheitsnetz: spätestens nach 12 Sekunden die Karte zeigen
+  setTimeout(startFertig, 12000);
+} else {
+  startFertig();
 }

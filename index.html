@@ -6,10 +6,25 @@
   <title>Wetter-App</title>
   <!-- Hier verbinden wir das Aussehen (CSS) -->
   <link rel="stylesheet" href="style.css">
+  <!-- Läuft SOFORT, noch bevor etwas zu sehen ist: Gibt es eine gespeicherte
+       Stadt, verstecken wir die Karte, bis ihr Wetter geladen ist.
+       So springt die Karte beim Neuladen nicht von klein auf groß. -->
+  <script>
+    try {
+      if (localStorage.getItem("letzteStadt")) {
+        document.documentElement.classList.add("startet");
+      }
+    } catch (fehler) {
+      // localStorage blockiert: dann einfach normal starten
+    }
+  </script>
 </head>
 <body>
   <!-- Animierter Wetter-Hintergrund (nur Deko, rein mit CSS) -->
   <div class="wetter-effekt" aria-hidden="true"></div>
+
+  <!-- Kleiner Lade-Kreis, nur beim Start mit gespeicherter Stadt sichtbar -->
+  <div class="start-lader" aria-hidden="true"></div>
 
   <main class="karte">
     <!-- Kopfbereich: Titel + Suchformular (am Laptop nebeneinander) -->

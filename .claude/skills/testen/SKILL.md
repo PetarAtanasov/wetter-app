@@ -46,6 +46,23 @@ Prüfe:
    - `seite` darf nicht größer als `fenster` sein, sonst muss man scrollen.
    Mach einen Screenshot vom Handy (390×844) und vom Laptop (1366×768) und **schau ihn dir genau an**. Ragt etwas über den Rand der weißen Karte? Danach wieder auf `desktop` stellen.
 
+9. **Nichts springt beim Suchen:** Nach einer ersten Suche suchst du eine zweite Stadt, und zwar per **echtem Klick** auf den Suchen-Knopf, nicht nur mit `requestSubmit()`. Zeichne dabei mit `requestAnimationFrame` **jeden Frame** auf: Position und Größe von `.karte` sowie `#wetter.hidden`. Bremse `fetch` vorher künstlich (ca. 750 ms Wartezeit), damit man auch langsames Internet sieht.
+   - Die Karte darf ihre Größe und Position während des Ladens **nicht** ändern. Erst das neue Ergebnis darf sie ändern.
+   - `#wetter` darf zwischendurch nicht `hidden` werden.
+
+10. **Nichts springt beim Neuladen:** Suche zuerst eine Stadt, damit sie gespeichert ist. Lade dann die Seite neu (`navigate`) und lies danach die Layout-Verschiebungen aus:
+    ```js
+    const e = []; await new Promise(res => { new PerformanceObserver(l => { e.push(...l.getEntries()); res(); })
+      .observe({ type: 'layout-shift', buffered: true }); setTimeout(res, 500); });
+    e.reduce((a, x) => a + x.value, 0)   // muss 0 sein
+    ```
+    Prüfe außerdem zwei Fälle: Ohne gespeicherte Stadt ist die Karte sofort sichtbar. Mit einer gespeicherten **unbekannten** Stadt erscheint die Karte mit der Meldung „Stadt nicht gefunden“ und bleibt nicht unsichtbar.
+11. **Gleiche Höhe in jeder Ansicht:** Prüfe bei jeder Größe aus Test 8, ob die Höhe der `.karte` gleich bleibt, wenn man
+    - alle 5 Tage nacheinander anklickt,
+    - eine unbekannte Stadt sucht, während schon Wetter angezeigt wird (die Meldung muss als Blase **über** der Karte schweben),
+    - eine Stadt mit **langem Namen** sucht (z.B. `Garmisch-Partenkirchen`) und dann einen Tag anklickt.
+    Schon 1 px Unterschied heißt: die Karte springt ❌.
+
 ## Schritt 3: Ergebnis
 Zeig eine kurze Liste:
 
