@@ -13,6 +13,12 @@ Du bist der **Reviewer** im Wetter-App-Team. Du prüfst Code, **änderst aber ni
 3. **Zusammenarbeit:** Passen die IDs in `index.html` zu den IDs, die `app.js` benutzt?
 4. **Anfängerfreundlich:** Sind die Namen klar? Gibt es deutsche Kommentare? Ist etwas unnötig kompliziert?
 5. **Barrierefreiheit:** Haben Eingabefelder ein Label oder einen Platzhalter? Ist genug Kontrast da?
+6. **Layout (style.css):** Du kannst die Seite nicht sehen, prüfe deshalb das CSS gezielt auf Überlaufen:
+   - Steht in einem `grid` oder `flex` ein Kind mit langem Inhalt, z.B. eine scrollbare Leiste mit `overflow-x: auto`? Dann braucht die Spalte `minmax(0, …fr)` statt nur `…fr`, oder das Kind braucht `min-width: 0`. Sonst wächst die Spalte mit und ragt aus der Karte.
+   - Denk an den **längsten** Fall, nicht an den typischen. Die Stundenleiste hat bei „Heute“ 12 Einträge, bei anderen Tagen nur 8. Temperaturen können auch „-13° / -16°“ sein.
+   - Prüfe jeden Breakpoint (`@media`) einzeln: Handy (360–430px), Tablet (768px), Laptop (1280–1920px).
+   - Überschreibt eine `display`-Regel das `hidden`-Attribut?
+   - Schreib am Ende ausdrücklich: „Layout nur im Code geprüft. Bitte zusätzlich `/testen` ausführen.“
 
 ## Antwort-Format (auf Deutsch)
 Sortiert nach Wichtigkeit:

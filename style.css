@@ -1,33 +1,453 @@
+/* ===== PFLICHT: Versteckte Elemente bleiben versteckt =====
+   app.js blendet Bereiche mit "hidden" aus. Ohne !important würden
+   unsere display-Regeln (flex, grid) das überschreiben. */
+[hidden] {
+  display: none !important;
+}
+
+/* ===== Farben als Variablen (hier kannst du alle Farben an einem Ort ändern) ===== */
+:root {
+  color-scheme: light dark;         /* Browser-Elemente passen sich dem Modus an */
+  --karte: #ffffff;                /* Hintergrund der Karte */
+  --text: #2d3436;                  /* normale Schrift */
+  --text-leise: #4b565a;            /* etwas hellere Schrift (Details, Kästchen) */
+  --kaestchen: #f1f5fb;             /* Hintergrund der kleinen Kästchen */
+  --kaestchen-hover: #e1e9f5;       /* Kästchen, wenn die Maus darüber ist */
+  --kaestchen-aktiv: #e0e7ff;       /* der gewählte Tag (zartes Indigo) */
+  --akzent: #4f46e5;                /* Hauptfarbe (Rahmen, Fokus) = Ende des Knopf-Verlaufs */
+  /* Suchen-Knopf: Verlauf von Himmelblau zu Indigo.
+     Weiße Schrift hat überall mind. 4.5:1 Kontrast (hellste Stelle: 5.93:1) */
+  --knopf-start: #0369a1;
+  --knopf-ende: #4f46e5;
+  --knopf-hover-start: #0077b6;     /* beim Darüberfahren etwas heller (mind. 4.87:1) */
+  --knopf-hover-ende: #5b50e8;
+  --knopf-schatten: rgba(79, 70, 229, 0.35); /* dezenter farbiger Schatten */
+  --knopf-text: #ffffff;            /* Schrift auf Knöpfen */
+  --eingabe-hintergrund: #ffffff;   /* Hintergrund des Eingabefelds */
+  --eingabe-rahmen: #b2bec3;        /* Rahmen des Eingabefelds */
+  --fehler: #b71c1c;                /* Fehlermeldungen (rot) */
+  --schatten: rgba(0, 0, 0, 0.2);   /* Schatten der Karte */
+
+  /* Hintergrund-Verläufe (Standard und je nach Wetter) */
+  --verlauf: linear-gradient(160deg, #74b9ff, #0652dd);
+  --verlauf-sonne: linear-gradient(160deg, #3d9bff, #ffc266);   /* wärmer */
+  --verlauf-wolken: linear-gradient(160deg, #8fa9c4, #5b7a9d);
+  --verlauf-nebel: linear-gradient(160deg, #cfd5d9, #8d979c);
+  --verlauf-regen: linear-gradient(160deg, #6f8296, #2f4357);   /* dunkler, grauer */
+  --verlauf-schnee: linear-gradient(160deg, #bcd6ee, #7fa6cc);  /* damit weiße Flocken sichtbar sind */
+  --verlauf-gewitter: linear-gradient(160deg, #5b4f73, #2a2438);
+
+  /* Farben und Stärke der Wetter-Effekte */
+  --effekt-staerke: 1;                           /* Regen/Schnee: 1 = voll */
+  --regen-fern: rgba(255, 255, 255, 0.35);       /* hintere Regenebene */
+  --regen-nah: rgba(255, 255, 255, 0.55);        /* vordere Regenebene */
+  --schnee-farbe: rgba(255, 255, 255, 0.95);
+  --wolke: rgba(255, 255, 255, 0.55);
+  --nebel: rgba(255, 255, 255, 0.4);
+  --sonne-kern: #fffbe0;                         /* Farben der Sonne (innen nach außen) */
+  --sonne-mitte: #ffd54a;
+  --sonne-glow: rgba(255, 200, 60, 0.4);
+  --strahlen: rgba(255, 244, 180, 0.35);
+  --sonne-staerke: 1;
+}
+
+/* ===== Dark Mode: folgt der Systemeinstellung ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --karte: #1e272e;
+    --text: #f1f2f6;
+    --text-leise: #b2bec3;
+    --kaestchen: #2f3a44;
+    --kaestchen-hover: #3b4853;
+    --kaestchen-aktiv: #2e3466;     /* dunkles Indigo */
+    --akzent: #a5b4fc;              /* helles Indigo, gut sichtbar auf dunkler Karte */
+    /* Verlauf etwas tiefer, damit er nicht grell wirkt (hellste Stelle: 5.93:1) */
+    --knopf-start: #0369a1;
+    --knopf-ende: #4338ca;
+    --knopf-hover-start: #0573b0;   /* hellste Stelle beim Darüberfahren: 5.14:1 */
+    --knopf-hover-ende: #4f46e5;
+    --knopf-schatten: rgba(99, 102, 241, 0.45);
+    --knopf-text: #ffffff;
+    --eingabe-hintergrund: #2f3a44;
+    --eingabe-rahmen: #5d6d78;
+    --fehler: #ff8a8a;
+    --schatten: rgba(0, 0, 0, 0.5);
+
+    /* etwas dunklere Verläufe */
+    --verlauf: linear-gradient(160deg, #1f3b66, #0a1f4d);
+    --verlauf-sonne: linear-gradient(160deg, #1d4a80, #8a5a1c);
+    --verlauf-wolken: linear-gradient(160deg, #33465c, #1f2d3d);
+    --verlauf-nebel: linear-gradient(160deg, #4a5257, #2b3135);
+    --verlauf-regen: linear-gradient(160deg, #36475a, #172330);
+    --verlauf-schnee: linear-gradient(160deg, #4a6784, #2a3d52);
+    --verlauf-gewitter: linear-gradient(160deg, #2e2740, #120f1b);
+
+    /* Effekte im Dunkeln dezenter */
+    --effekt-staerke: 0.6;
+    --wolke: rgba(255, 255, 255, 0.2);
+    --nebel: rgba(200, 210, 220, 0.2);
+    /* Sonne wird zum blassen Mond-Schein */
+    --sonne-kern: #f4f6fb;
+    --sonne-mitte: #c5d0e6;
+    --sonne-glow: rgba(170, 185, 215, 0.35);
+    --strahlen: rgba(200, 215, 240, 0.18);
+    --sonne-staerke: 0.75;
+  }
+}
+
 /* ===== Grundeinstellungen ===== */
 * {
   box-sizing: border-box;
 }
 
-body {
+/* Kein Standard-Abstand: Abstände machen wir nur mit "gap" */
+h1, h2, h3, p {
   margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, sans-serif;
-  /* Farbverlauf als Hintergrund: von Himmelblau zu Dunkelblau */
-  background: linear-gradient(160deg, #74b9ff, #0652dd);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
 }
 
-/* ===== Die weiße Karte in der Mitte ===== */
+body {
+  margin: 0;
+  min-height: 100vh;                /* Ersatz für ältere Browser */
+  min-height: 100dvh;               /* echte sichtbare Höhe am Handy */
+  font-family: system-ui, sans-serif;
+  color: var(--text);
+  /* Standard-Hintergrund (solange noch kein Wetter geladen ist) */
+  background: var(--verlauf);
+  display: flex;                    /* Karte in die Mitte */
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* ===== Hintergrund passend zum Wetter (app.js setzt data-wetter) ===== */
+body[data-wetter="sonne"]    { background: var(--verlauf-sonne); }
+body[data-wetter="wolken"]   { background: var(--verlauf-wolken); }
+body[data-wetter="nebel"]    { background: var(--verlauf-nebel); }
+body[data-wetter="regen"]    { background: var(--verlauf-regen); }
+body[data-wetter="schnee"]   { background: var(--verlauf-schnee); }
+body[data-wetter="gewitter"] { background: var(--verlauf-gewitter); }
+
+/* ===== Animierte Wetter-Hintergründe (nur CSS) ===== */
+
+/* Der Effekt-Container: füllt den Bildschirm, liegt hinter der Karte,
+   ist nicht klickbar und schneidet alles ab, was herausragt. */
+.wetter-effekt {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* Position und Größe der Sonne (Handy: klein, halb außerhalb der Ecke) */
+  --sx: 30px;     /* Abstand der Sonnenmitte vom rechten Rand */
+  --sy: 40px;     /* Abstand der Sonnenmitte vom oberen Rand */
+  --sg: 260px;    /* Größe der Sonne inklusive Glow */
+}
+
+/* Ohne data-wetter (vor der Suche) gibt es keine Ebenen */
+.wetter-effekt::before,
+.wetter-effekt::after {
+  content: none;
+}
+
+/* --- Regen und Gewitter: zwei Ebenen, höher als der Bildschirm --- */
+body[data-wetter="regen"] .wetter-effekt::before,
+body[data-wetter="regen"] .wetter-effekt::after,
+body[data-wetter="gewitter"] .wetter-effekt::before,
+body[data-wetter="gewitter"] .wetter-effekt::after {
+  content: "";
+  position: absolute;
+  top: -100%;                         /* Ebene ist 2x so hoch wie der Bildschirm */
+  height: 200%;
+  left: -60vmax;                      /* extra breit, wegen der Schräge */
+  width: calc(100% + 120vmax);
+  opacity: var(--effekt-staerke);
+  transform: skewX(-9deg);            /* leicht schräger Regen */
+  will-change: transform;
+  animation: regen-faellt 1.4s linear infinite;
+}
+
+/* Hintere Ebene: dünne, blasse Striche (Kachel = 25% der Ebenenhöhe) */
+body[data-wetter="regen"] .wetter-effekt::before,
+body[data-wetter="gewitter"] .wetter-effekt::before {
+  background-image:
+    radial-gradient(ellipse 1px 20px at 20px 12%, var(--regen-fern), transparent),
+    radial-gradient(ellipse 1px 20px at 75px 40%, var(--regen-fern), transparent),
+    radial-gradient(ellipse 1px 20px at 130px 70%, var(--regen-fern), transparent),
+    radial-gradient(ellipse 1px 20px at 185px 25%, var(--regen-fern), transparent),
+    radial-gradient(ellipse 1px 20px at 240px 85%, var(--regen-fern), transparent),
+    radial-gradient(ellipse 1px 20px at 290px 55%, var(--regen-fern), transparent);
+  background-size: 310px 25%;
+}
+
+/* Vordere Ebene: längere, hellere Striche, schneller */
+body[data-wetter="regen"] .wetter-effekt::after,
+body[data-wetter="gewitter"] .wetter-effekt::after {
+  background-image:
+    radial-gradient(ellipse 1.5px 32px at 45px 20%, var(--regen-nah), transparent),
+    radial-gradient(ellipse 1.5px 32px at 110px 62%, var(--regen-nah), transparent),
+    radial-gradient(ellipse 1.5px 32px at 190px 8%, var(--regen-nah), transparent),
+    radial-gradient(ellipse 1.5px 32px at 255px 48%, var(--regen-nah), transparent),
+    radial-gradient(ellipse 1.5px 32px at 330px 80%, var(--regen-nah), transparent);
+  background-size: 370px 25%;
+  animation-duration: 0.9s;
+}
+
+/* Gewitter: Regen etwas stärker und schneller */
+body[data-wetter="gewitter"] .wetter-effekt::before { animation-duration: 1s; }
+body[data-wetter="gewitter"] .wetter-effekt::after  { animation-duration: 0.65s; }
+
+/* Die Ebene wandert genau 50% (= 2 Kacheln) nach unten, dann beginnt sie nahtlos neu */
+@keyframes regen-faellt {
+  from { transform: skewX(-9deg) translateY(0); }
+  to   { transform: skewX(-9deg) translateY(50%); }
+}
+
+/* Blitz beim Gewitter: kurzer weißer Aufheller hinter der Karte, ca. alle 6 Sekunden */
+body[data-wetter="gewitter"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #ffffff;
+  opacity: 0;
+  animation: blitz 6s linear infinite;
+}
+
+@keyframes blitz {
+  0%, 90%, 100% { opacity: 0; }
+  91%           { opacity: 0.5; }
+  93%           { opacity: 0.1; }
+  94%           { opacity: 0.4; }
+  96%           { opacity: 0; }
+}
+
+/* --- Schnee: Flocken als Punkte, zwei Ebenen, fallen und schwanken leicht --- */
+body[data-wetter="schnee"] .wetter-effekt::before,
+body[data-wetter="schnee"] .wetter-effekt::after {
+  content: "";
+  position: absolute;
+  top: -100%;
+  height: 200%;
+  left: -40px;                        /* Platz für das seitliche Schwanken */
+  width: calc(100% + 80px);
+  opacity: var(--effekt-staerke);
+  will-change: transform;
+  animation: schnee-faellt 26s linear infinite;
+}
+
+/* Hintere Ebene: kleine Flocken, langsam */
+body[data-wetter="schnee"] .wetter-effekt::before {
+  background-image:
+    radial-gradient(circle 2px at 30px 10%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 2px at 90px 35%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 3px at 150px 60%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 2px at 210px 22%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 2px at 260px 80%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 3px at 60px 90%, var(--schnee-farbe) 60%, transparent 100%),
+    radial-gradient(circle 2px at 300px 48%, var(--schnee-farbe) 60%, transparent 100%);
+  background-size: 320px 25%;
+}
+
+/* Vordere Ebene: größere Flocken, etwas schneller */
+body[data-wetter="schnee"] .wetter-effekt::after {
+  background-image:
+    radial-gradient(circle 5px at 50px 18%, var(--schnee-farbe) 55%, transparent 100%),
+    radial-gradient(circle 4px at 170px 52%, var(--schnee-farbe) 55%, transparent 100%),
+    radial-gradient(circle 6px at 290px 30%, var(--schnee-farbe) 55%, transparent 100%),
+    radial-gradient(circle 4px at 110px 82%, var(--schnee-farbe) 55%, transparent 100%),
+    radial-gradient(circle 5px at 380px 70%, var(--schnee-farbe) 55%, transparent 100%);
+  background-size: 440px 25%;
+  animation-duration: 16s;
+  animation-name: schnee-faellt-2;
+}
+
+/* Fällt 50% (= 2 Kacheln) und schwankt dabei seitlich hin und her */
+@keyframes schnee-faellt {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(18px, 12.5%); }
+  50%  { transform: translate(0, 25%); }
+  75%  { transform: translate(-18px, 37.5%); }
+  100% { transform: translate(0, 50%); }
+}
+
+/* Zweite Ebene schwankt in die andere Richtung */
+@keyframes schnee-faellt-2 {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-25px, 12.5%); }
+  50%  { transform: translate(0, 25%); }
+  75%  { transform: translate(25px, 37.5%); }
+  100% { transform: translate(0, 50%); }
+}
+
+/* --- Sonne: leuchtende Scheibe oben rechts + langsam drehende Strahlen --- */
+body[data-wetter="sonne"] .wetter-effekt::before,
+body[data-wetter="sonne"] .wetter-effekt::after {
+  content: "";
+  position: absolute;
+  opacity: var(--sonne-staerke);
+}
+
+/* Sonne mit weichem Glow, pulsiert sanft */
+body[data-wetter="sonne"] .wetter-effekt::before {
+  width: var(--sg);
+  height: var(--sg);
+  left: calc(100% - var(--sx) - var(--sg) / 2);
+  top: calc(var(--sy) - var(--sg) / 2);
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side,
+    var(--sonne-kern) 0%,
+    var(--sonne-kern) 14%,
+    var(--sonne-mitte) 30%,
+    var(--sonne-glow) 48%,
+    transparent 100%);
+  animation: sonne-pulsiert 5s ease-in-out infinite;
+}
+
+/* Strahlen: großer Kreis um die Sonne, nach außen ausgeblendet, dreht sich in 60 s */
+body[data-wetter="sonne"] .wetter-effekt::after {
+  width: 110vmax;
+  height: 110vmax;
+  left: calc(100% - var(--sx) - 55vmax);
+  top: calc(var(--sy) - 55vmax);
+  background: repeating-conic-gradient(var(--strahlen) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 5%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 5%, transparent 100%);
+  will-change: transform;
+  animation: sonne-dreht 60s linear infinite;
+}
+
+@keyframes sonne-pulsiert {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+@keyframes sonne-dreht {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Am Tablet/Laptop ist die Sonne größer und steht ganz im Bild */
+@media (min-width: 600px) {
+  .wetter-effekt {
+    --sx: 150px;
+    --sy: 140px;
+    --sg: 480px;
+  }
+}
+
+/* --- Wolken: weiche, verschwommene Wolken ziehen langsam nach links --- */
+body[data-wetter="wolken"] .wetter-effekt::before,
+body[data-wetter="wolken"] .wetter-effekt::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 200%;                        /* 2 Kacheln, die Ebene wandert genau 1 Kachel */
+  filter: blur(14px);
+  will-change: transform;
+  animation: wolken-ziehen 90s linear infinite;
+}
+
+/* Obere Wolkenebene (je Kachel 3 Wolken aus mehreren Ovalen) */
+body[data-wetter="wolken"] .wetter-effekt::before {
+  top: 4%;
+  height: 40%;
+  background-image:
+    radial-gradient(ellipse 14% 30% at 25% 45%, var(--wolke), transparent),
+    radial-gradient(ellipse 12% 24% at 34% 55%, var(--wolke), transparent),
+    radial-gradient(ellipse 12% 22% at 17% 58%, var(--wolke), transparent),
+    radial-gradient(ellipse 15% 32% at 72% 40%, var(--wolke), transparent),
+    radial-gradient(ellipse 11% 24% at 82% 52%, var(--wolke), transparent);
+  background-size: 50% 100%;
+}
+
+/* Untere Wolkenebene: langsamer, andere Position */
+body[data-wetter="wolken"] .wetter-effekt::after {
+  top: 52%;
+  height: 40%;
+  background-image:
+    radial-gradient(ellipse 16% 30% at 45% 50%, var(--wolke), transparent),
+    radial-gradient(ellipse 12% 24% at 56% 58%, var(--wolke), transparent),
+    radial-gradient(ellipse 12% 24% at 35% 60%, var(--wolke), transparent),
+    radial-gradient(ellipse 13% 26% at 88% 45%, var(--wolke), transparent);
+  background-size: 50% 100%;
+  animation-duration: 140s;
+}
+
+@keyframes wolken-ziehen {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* --- Nebel: breite, verschwommene Bänder wabern hin und her --- */
+body[data-wetter="nebel"] .wetter-effekt::before,
+body[data-wetter="nebel"] .wetter-effekt::after {
+  content: "";
+  position: absolute;
+  left: -25%;
+  width: 150%;
+  height: 100%;
+  top: 0;
+  filter: blur(18px);
+  will-change: transform;
+  animation: nebel-waebert 20s ease-in-out infinite alternate;
+}
+
+body[data-wetter="nebel"] .wetter-effekt::before {
+  background-image:
+    radial-gradient(ellipse 40% 10% at 35% 18%, var(--nebel), transparent),
+    radial-gradient(ellipse 45% 12% at 65% 52%, var(--nebel), transparent),
+    radial-gradient(ellipse 40% 10% at 40% 86%, var(--nebel), transparent);
+}
+
+body[data-wetter="nebel"] .wetter-effekt::after {
+  background-image:
+    radial-gradient(ellipse 45% 11% at 60% 32%, var(--nebel), transparent),
+    radial-gradient(ellipse 40% 10% at 35% 70%, var(--nebel), transparent);
+  animation-duration: 28s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes nebel-waebert {
+  from { transform: translateX(-8%); }
+  to   { transform: translateX(8%); }
+}
+
+/* Bewegung reduzieren: Effekt bleibt als stilles Bild stehen, nichts animiert */
+@media (prefers-reduced-motion: reduce) {
+  .wetter-effekt::before,
+  .wetter-effekt::after,
+  body[data-wetter]::after {
+    animation: none !important;
+  }
+}
+
+/* ===== Die Karte in der Mitte ===== */
 .karte {
-  background: white;
+  position: relative;               /* liegt über dem Wetter-Effekt */
+  z-index: 1;
+  background: var(--karte);
   border-radius: 20px;
-  padding: 32px;
+  padding: 16px;
   width: 100%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 560px;
+  text-align: left;
+  box-shadow: 0 10px 30px var(--schatten);
+  display: flex;                    /* alles untereinander */
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Kopf: Titel + Suche ===== */
+.kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 h1 {
-  margin-top: 0;
+  font-size: clamp(1.125rem, 0.95rem + 0.6vw, 1.375rem); /* wächst mit dem Bildschirm */
+  line-height: 1.2;
 }
 
 /* ===== Formular ===== */
@@ -36,43 +456,245 @@ form {
   gap: 8px;
 }
 
+/* Eingabefeld: min-width 0 verhindert, dass das Formular am Handy überläuft */
 input {
   flex: 1;
-  padding: 12px;
-  font-size: 16px;
-  border: 2px solid #dfe6e9;
+  min-width: 0;
+  min-height: 44px;                 /* gut mit dem Finger zu treffen */
+  padding: 0 12px;
+  font-size: 16px;                  /* 16px: iPhone zoomt dann nicht hinein */
+  font-family: inherit;
+  color: var(--text);
+  background: var(--eingabe-hintergrund);
+  border: 2px solid var(--eingabe-rahmen);
   border-radius: 10px;
 }
 
+input::placeholder {
+  color: var(--text-leise);
+  opacity: 1;
+}
+
+input:focus-visible {
+  outline: 3px solid var(--akzent);
+  outline-offset: 1px;
+  border-color: var(--akzent);
+}
+
+/* Alle Knöpfe: gemeinsame Grundwerte */
 button {
-  padding: 12px 18px;
+  min-height: 44px;
+  padding: 0 18px;
   font-size: 16px;
+  font-family: inherit;
   border: none;
   border-radius: 10px;
-  background: #0652dd;
-  color: white;
   cursor: pointer;
 }
 
-button:hover {
-  background: #0441b0;
+/* Sichtbarer Rahmen, wenn man mit der Tastatur (Tab) auf einen Knopf kommt */
+button:focus-visible {
+  outline: 3px solid var(--akzent);
+  outline-offset: 2px;
 }
 
-/* ===== Wetter-Anzeige ===== */
-.icon {
-  font-size: 72px;
+/* Der Suchen-Knopf: weicher Verlauf, farbiger Schatten */
+.such-knopf {
+  flex-shrink: 0;                   /* wird nicht zusammengedrückt, das Eingabefeld gibt nach */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                         /* Abstand zwischen 🔍 und "Suchen" */
+  padding: 0 16px;
+  white-space: nowrap;              /* "Suchen" bleibt in einer Zeile */
+  font-weight: 600;
+  color: var(--knopf-text);
+  background: linear-gradient(135deg, var(--knopf-start), var(--knopf-ende));
+  box-shadow: 0 4px 12px var(--knopf-schatten);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Maus darüber: etwas heller und leicht angehoben */
+.such-knopf:hover {
+  background: linear-gradient(135deg, var(--knopf-hover-start), var(--knopf-hover-ende));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px var(--knopf-schatten);
+}
+
+/* Beim Klicken: wird "eingedrückt" */
+.such-knopf:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px var(--knopf-schatten);
+}
+
+/* Bewegung reduzieren: Knopf bewegt sich nicht */
+@media (prefers-reduced-motion: reduce) {
+  .such-knopf {
+    transition: none;
+  }
+  .such-knopf:hover,
+  .such-knopf:active {
+    transform: none;
+  }
+}
+
+/* ===== Meldungen (immer rot) ===== */
+/* Nicht mit display:none verstecken, sonst liest der Screenreader nichts vor */
+#meldung {
+  color: var(--fehler);
+  min-height: 0;
+}
+
+/* Leere Meldung: den Abstand (gap) davor wieder "zurücknehmen" */
+#meldung:empty {
+  margin-top: -16px;
+}
+
+/* ===== Wetter-Bereich: am Handy alles untereinander ===== */
+#wetter {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.spalte {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;  /* Spalte darf schmaler als ihr Inhalt sein → kein Überlaufen */
+}
+
+/* ===== Hero: Ort, große Temperatur, Icon, Beschreibung ===== */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;  /* links Text, rechts Icon */
+  grid-template-areas:
+    "ort  ort"
+    "temp icon"
+    "text icon";
+  column-gap: 12px;
+  align-items: center;
+}
+
+.hero-ort {
+  grid-area: ort;
+  font-size: clamp(1.0625rem, 0.95rem + 0.6vw, 1.5rem);
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .temperatur {
-  font-size: 48px;
-  font-weight: bold;
-  margin: 0;
+  grid-area: temp;
+  font-size: clamp(3.5rem, 2.5rem + 3.5vw, 5.5rem);
+  font-weight: 300;                 /* dünne, moderne Zahl */
+  line-height: 1;
+  letter-spacing: -0.03em;
+  white-space: nowrap;              /* "13° / 6°" bleibt in einer Zeile */
 }
 
+.icon {
+  grid-area: icon;
+  font-size: clamp(3.5rem, 2.75rem + 2.5vw, 5rem);
+  line-height: 1;
+}
+
+.hero-text {
+  grid-area: text;
+  font-size: clamp(0.9375rem, 0.9rem + 0.3vw, 1.125rem);
+  color: var(--text-leise);
+  margin-top: 4px;
+}
+
+/* Sehr schmale Handys: Temperatur darf umbrechen und wird etwas kleiner */
+@media (max-width: 359px) {
+  .temperatur {
+    white-space: normal;
+    font-size: 3rem;
+  }
+}
+
+/* ===== Details: Kacheln im 2er-Raster ===== */
 .details {
   list-style: none;
   padding: 0;
-  color: #636e72;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.details li {
+  display: flex;
+  flex-direction: column;           /* Beschriftung oben, Wert darunter */
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--kaestchen);
+  border-radius: 12px;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: var(--text-leise);
+}
+
+.detail-wert {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums; /* Ziffern gleich breit */
+}
+
+/* Bei 5 Kacheln (Regen sichtbar) geht "Sonne" über die ganze Breite */
+#regen-zeile:not([hidden]) ~ .detail-sonne {
+  grid-column: 1 / -1;
+}
+
+/* ===== Überschriften "Stündlich" und "5 Tage" ===== */
+.abschnitt-titel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  margin-bottom: 6px;
+}
+
+/* ===== Stündliche Leiste (waagerecht scrollbar) ===== */
+.stunden {
+  list-style: none;
+  padding: 0 0 4px;
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;            /* schmale Scrollleiste */
+  scroll-snap-type: x proximity;    /* rastet sanft an den Kästchen ein */
+}
+
+/* Fokus-Rahmen, wenn man per Tab auf die Leiste kommt */
+.stunden:focus-visible {
+  outline: 3px solid var(--akzent);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.stunde {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 52px;
+  padding: 6px 4px;
+  background: var(--kaestchen);
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--text-leise);
+  scroll-snap-align: start;
+}
+
+.stunde-icon {
+  font-size: 1.25rem;
+  line-height: 1.2;
 }
 
 /* ===== Vorhersage (5 Tage) ===== */
@@ -80,29 +702,158 @@ button:hover {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-wrap: wrap; /* auf schmalen Bildschirmen umbrechen */
-  gap: 8px;
-  justify-content: center;
+  /* Raster: immer 5 gleich breite Spalten, eine pro Tag */
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+/* Jede Spalte darf schrumpfen, damit nichts überläuft */
+.vorhersage li {
+  min-width: 0;
 }
 
 .vorhersage-tag {
-  flex: 1 1 60px;
+  /* ist ein Button: Standard-Knopfstil überschreiben */
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 4px;
-  background: #f1f5fb;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #636e72;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 2px;
+  background: var(--kaestchen);
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  color: var(--text-leise);
+  font-family: inherit;
+}
+
+.vorhersage-tag:hover {
+  background: var(--kaestchen-hover);
+}
+
+/* Der gewählte Tag: Akzent-Rahmen (innen, damit nichts wackelt) + andere Farbe */
+.vorhersage-tag.aktiv {
+  background: var(--kaestchen-aktiv);
+  color: var(--text);
+  font-weight: bold;
+  box-shadow: inset 0 0 0 2px var(--akzent);
 }
 
 .vorhersage-icon {
-  font-size: 28px;
+  font-size: 1.375rem;
+  line-height: 1.2;
 }
 
-#meldung {
-  color: #d63031;
-  min-height: 1.2em;
+/* ===== Tablet (ab 600px): etwas mehr Luft ===== */
+@media (min-width: 600px) {
+  body {
+    padding: 24px;
+  }
+
+  .karte {
+    padding: 24px;
+    gap: 20px;
+  }
+
+  /* Leere Meldung: passend zum größeren Abstand */
+  #meldung:empty {
+    margin-top: -20px;
+  }
+}
+
+/* ===== Laptop (ab 900px): zwei Spalten nebeneinander ===== */
+@media (min-width: 900px) {
+  /* Vor der Suche schmal, sobald Wetter da ist breit */
+  .karte:has(#wetter:not([hidden])) {
+    max-width: 1040px;
+  }
+
+  .karte {
+    padding: 28px;
+    gap: 24px;
+  }
+
+  #meldung:empty {
+    margin-top: -24px;
+  }
+
+  /* Titel links, Suche rechts */
+  .kopf {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  /* Titel bleibt in einer Zeile, das Formular gibt nach */
+  .kopf h1 {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .kopf form {
+    flex: 0 1 480px;
+    min-width: 0;
+  }
+
+  /* Links aktuelles Wetter, rechts Vorschau */
+  #wetter {
+    display: grid;
+    /* minmax(0, …): die rechte Spalte darf NICHT breiter werden, nur weil
+       die Stundenleiste lang ist. Die Leiste scrollt dann stattdessen. */
+    grid-template-columns: minmax(320px, 5fr) minmax(0, 7fr);
+    gap: 32px;
+    align-items: start;
+  }
+
+  .spalte {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .spalte-vorschau {
+    gap: 24px;
+  }
+
+  .details li {
+    padding: 10px 14px;
+  }
+
+  .detail-wert {
+    font-size: 1.125rem;
+  }
+
+  .stunde {
+    min-width: 60px;
+    padding: 8px 4px;
+    font-size: 0.875rem;
+  }
+
+  .stunde-icon {
+    font-size: 1.5rem;
+  }
+
+  .vorhersage-tag {
+    padding: 12px 4px;
+    gap: 4px;
+    font-size: 0.875rem;
+  }
+
+  .vorhersage-icon {
+    font-size: 1.75rem;
+  }
+}
+
+/* Unsichtbar, aber für Screenreader vorhanden (z.B. das Label "Stadt") */
+.nur-vorlesen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

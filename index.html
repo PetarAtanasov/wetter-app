@@ -8,32 +8,62 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Animierter Wetter-Hintergrund (nur Deko, rein mit CSS) -->
+  <div class="wetter-effekt" aria-hidden="true"></div>
+
   <main class="karte">
-    <h1>🌤️ Wetter-App</h1>
+    <!-- Kopfbereich: Titel + Suchformular (am Laptop nebeneinander) -->
+    <header class="kopf">
+      <h1>🌤️ Wetter-App</h1>
 
-    <!-- Das Formular: Stadt eingeben + Button -->
-    <form id="such-formular">
-      <input id="stadt-eingabe" type="text" placeholder="Stadt eingeben, z.B. Berlin" required>
-      <button type="submit">Suchen</button>
-    </form>
+      <!-- Das Formular: Stadt eingeben + Suchen-Knopf -->
+      <form id="such-formular">
+        <!-- Das Label ist unsichtbar, wird aber von Screenreadern vorgelesen -->
+        <label for="stadt-eingabe" class="nur-vorlesen">Stadt</label>
+        <input id="stadt-eingabe" type="text" placeholder="Stadt eingeben, z.B. Berlin" required>
+        <!-- Die Lupe ist nur Deko: aria-hidden, damit der Screenreader nur "Suchen" vorliest -->
+        <button type="submit" class="such-knopf"><span aria-hidden="true">🔍</span> Suchen</button>
+      </form>
+    </header>
 
-    <!-- Hier zeigen wir Meldungen an (Laden..., Fehler) -->
-    <p id="meldung"></p>
+    <!-- Hier zeigen wir Meldungen an (Laden..., Fehler).
+         role="status": Screenreader lesen neue Meldungen automatisch vor. -->
+    <p id="meldung" role="status"></p>
 
     <!-- Hier erscheint das Wetter. Am Anfang versteckt (hidden). -->
-    <section id="wetter" hidden>
-      <h2 id="stadt-name"></h2>
-      <div id="wetter-icon" class="icon"></div>
-      <p id="temperatur" class="temperatur"></p>
-      <p id="beschreibung"></p>
-      <ul class="details">
-        <li>💧 Luftfeuchtigkeit: <span id="feuchtigkeit"></span></li>
-        <li>💨 Wind: <span id="wind"></span></li>
-      </ul>
+    <section id="wetter" hidden aria-labelledby="stadt-name">
+      <!-- Linke Spalte (am Laptop): aktuelles Wetter + Details -->
+      <div class="spalte spalte-aktuell">
+        <div class="hero">
+          <h2 id="stadt-name" class="hero-ort"></h2>
+          <p id="temperatur" class="temperatur"></p>
+          <div id="wetter-icon" class="icon" aria-hidden="true"></div>
+          <p id="beschreibung" class="hero-text"></p>
+        </div>
 
-      <!-- Vorhersage für die nächsten 5 Tage -->
-      <h3>Vorhersage</h3>
-      <ul id="vorhersage" class="vorhersage"></ul>
+        <ul class="details">
+          <li id="gefuehlt-zeile"><span class="detail-label">🌡️ Gefühlt</span> <span id="gefuehlt" class="detail-wert"></span></li>
+          <li id="feuchtigkeit-zeile"><span class="detail-label">💧 Luftfeuchte</span> <span id="feuchtigkeit" class="detail-wert"></span></li>
+          <li id="regen-zeile" hidden><span class="detail-label">🌧️ Regen</span> <span id="regen" class="detail-wert"></span></li>
+          <li id="wind-zeile"><span class="detail-label">💨 <span id="wind-titel">Wind</span></span> <span id="wind" class="detail-wert"></span></li>
+          <li class="detail-sonne"><span class="detail-label">🌅 Sonne</span>
+            <span class="detail-wert"><span class="nur-vorlesen">Aufgang </span><span id="sonnenaufgang"></span> – <span class="nur-vorlesen">Untergang </span><span id="sonnenuntergang"></span></span></li>
+        </ul>
+      </div>
+
+      <!-- Rechte Spalte (am Laptop): stündlich + 5 Tage -->
+      <div class="spalte spalte-vorschau">
+        <div>
+          <h3 id="stunden-titel" class="abschnitt-titel">Stündlich</h3>
+          <!-- Stündliche Vorhersage: waagerecht scrollbar -->
+          <ul id="stunden" class="stunden" tabindex="0" aria-labelledby="stunden-titel"></ul>
+        </div>
+        <div>
+          <h3 id="vorhersage-titel" class="abschnitt-titel">5 Tage</h3>
+          <!-- Vorhersage für die nächsten 5 Tage -->
+          <ul id="vorhersage" class="vorhersage" aria-labelledby="vorhersage-titel"></ul>
+        </div>
+      </div>
     </section>
   </main>
 
